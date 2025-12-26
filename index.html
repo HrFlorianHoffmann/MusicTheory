@@ -415,10 +415,32 @@
                 const baseName = octave >= 3 ? baseNote.toLowerCase() : baseNote.toUpperCase();
                 const sign = note.length > 2 ? note.charAt(2) : '';
                 const signAdditionBase = signAdditions[sign];
-                const signAddition = baseNote === 'E' && signAdditionBase === 'es' ? 's' : signAdditionBase;
+                const signAddition = (baseNote === 'E' || baseNote === 'A' ) && signAdditionBase === 'es' ? 's' : signAdditionBase;
                 const octaveAddition = octave >= 4 ? "'".repeat(octave - 3) : '';
                 const result = baseName + signAddition + octaveAddition;
                 return result;
+            }
+
+            const getBaseIntervalNames = () => {
+                return ['Prime', 'Sekunde', 'Terz', 'Quarte', 'Quinte', 'Sexte', 'Septime', 'Oktave'];
+            }
+
+            const calculateBaseIntervalName = (a, b) => {
+                const baseIntervalSize = calculateBaseIntervalSize(a, b);
+                const result = getBaseIntervalNames()[baseIntervalSize];
+                console.log(result);
+                return result;
+            }
+
+            const calculateBaseIntervalSize = (a, b) => {
+                const allOctaveNotes = getAllOctaveNotes();
+                const aWithoutSign = a.substring(0, 2);
+                const bWithoutSign = b.substring(0, 2);
+                const aNotePos = allOctaveNotes.indexOf(aWithoutSign);
+                const bNotePos = allOctaveNotes.indexOf(bWithoutSign);
+                const absolute = Math.abs(aNotePos - bNotePos);
+                const result = absolute > 7 ? null : absolute;
+                return absolute;
             }
 
             const calculateHalfTone = (note) => {
@@ -447,11 +469,71 @@
                 return ['Prime', 'kleine Sekunde', 'große Sekunde', 'kleine Terz', 'große Terz', 'Quarte', 'Tritonus', 'Quinte', 'kleine Sexte', 'große Sexte', 'kleine Septime', 'große Septime', 'Oktave'];
             }
 
+            const getPreciseIntervalNames = () => {
+                return {
+                    'Prime': {
+                        0: '',
+                        1: 'übermäßige'
+                    },
+                    'Sekunde': {
+                        0: 'verminderte',
+                        1: 'kleine',
+                        2: 'große',
+                        3: 'übermäßige'
+                    },
+                    'Terz': {
+                        2: 'verminderte',
+                        3: 'kleine',
+                        4: 'große',
+                        5: 'übermäßige'
+                    },
+                    'Quarte': {
+                        4: 'verminderte',
+                        5: '',
+                        6: 'übermäßige'
+                    },
+                    'Quinte': {
+                        6: 'verminderte',
+                        7: '',
+                        8: 'übermäßige'
+                    },
+                    'Sexte': {
+                        7: 'verminderte',
+                        8: 'kleine',
+                        9: 'große',
+                        10: 'übermäßige'
+                    },
+                    'Septime': {
+                        9: 'verminderte',
+                        10: 'kleine',
+                        11: 'große',
+                        12: 'übermäßige'
+                    },
+                    'Oktave': {
+                        11: 'verminderte',
+                        12: '',
+                        13: 'übermäßige'
+                    }
+                }
+            }
+
             const calculateIntervalName = (a, b) => {
-                const halfToneInterval = calculateIntervalInHalfTones(a, b);
-                const intervalNames = getIntervalNames();
-                const result = halfToneInterval >= 0 && halfToneInterval < intervalNames.length ? intervalNames[halfToneInterval] : null;
+                const baseIntervalName = calculateBaseIntervalName(a, b);
+                if (!baseIntervalName) {
+                    return null;
+                }
+                const halfTones = calculateIntervalInHalfTones(a, b);
+                const preciseIntervalNames = getPreciseIntervalNames();
+                const baseEntry = preciseIntervalNames[baseIntervalName];
+                const detailEntry = !!baseEntry ? baseEntry[halfTones] : null;
+                const qualifier = !!detailEntry ? detailEntry : null;
+                const result = !!qualifier ? [qualifier, baseIntervalName].join(' ') : null;
                 return result;
+
+                // const halfToneInterval = calculateIntervalInHalfTones(a, b);
+                // const intervalNames = getIntervalNames();
+                // const result = halfToneInterval >= 0 && halfToneInterval < intervalNames.length ? intervalNames[halfToneInterval] : null;
+                // return result;
             }
 
             const askForNoteName = () => {
