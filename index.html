@@ -1,0 +1,325 @@
+<html>
+    <body>
+        <div width="100%">
+            <svg id="svg" width="800" height="200">
+                
+            </svg>
+        </div>
+        <script>
+
+            const addGroup = (parent, id) => {
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                if (!!id) {
+                    group.setAttribute('id', id);
+                }
+                parent.appendChild(group);
+                return group;
+            }
+
+            const drawStaff = (parent, properties, stroke) => {
+                for (let i = 0; i < 5; i++) {
+                    const y = properties.y1 + properties.lineDistance * i;
+                    drawLine(parent, properties.x1, y, properties.width, y, stroke, 1);
+                }
+            }
+
+            const drawLine = (parent, x1, y1, x2, y2, stroke, strokeWidth) => {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', stroke);
+                line.setAttribute('stroke-width', strokeWidth);
+                parent.appendChild(line);
+                return line;
+            }
+
+            const drawPath = (parent, d, stroke, strokeWidth, fill) => {
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', d);
+                path.setAttribute('stroke', stroke);
+                path.setAttribute('stroke-width', strokeWidth);
+                path.setAttribute('fill', fill);
+                parent.appendChild(path);
+                return path;
+            }
+
+
+            const drawNoteHead = (parent, x, y, filled) => {
+                const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                ellipse.setAttribute('cx', x);
+                ellipse.setAttribute('cy', y);
+                ellipse.setAttribute('rx', 5.5);
+                ellipse.setAttribute('ry', 3.6);
+                const fill = filled ? 'black' : 'none';
+                ellipse.setAttribute('fill', fill);
+                ellipse.setAttribute('stroke', 'black');
+                ellipse.setAttribute('stroke-width', '2');
+                ellipse.setAttribute('transform', 'rotate(-30 ' + x + ' ' + y + ')');
+                parent.appendChild(ellipse);
+                return ellipse;
+            }
+
+            const drawNoteStem = (parent, x, y, length) => {
+                const xShift = length < 0 ? 5.1 : -5.1;
+                const shiftedX = x + xShift;
+                const yShift = length < 0 ? -1 : 1;
+                const startY = y + yShift;
+                const endY = y + length;
+                return drawLine(parent, shiftedX, startY, shiftedX, endY, 'black', 2);
+            }
+
+            const drawNoteTail = (parent, x, y) => {
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const x1 = x + 7, y1 = y;
+                const x2 = x + 7, y2 = y + 5;
+                const d = 'M ' + x + ' ' + y + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + x2 + ' ' + y2;
+                drawPath(parent, d, 'black', 2, 'none');
+            }
+
+            const drawNoteTails = (parent, x, y, stemLength, numTails) => {
+                for (let i = 0; i < numTails; i++) {
+                    const xShift = stemLength < 0 ? 5.5 : -5.5;
+                    const tailX = x + xShift;
+                    const yShift = stemLength + 1 + i * 5;
+                    const tailY = y + yShift;
+                    drawNoteTail(parent, tailX, tailY);
+                }
+            }
+
+            const drawNote = (parent, x, y, value, addHelpLine) => {
+                const denominator = parseInt(value = value.split('/')[1]);
+                const filled = denominator > 2;
+                const stemLength = denominator > 1 ? -40 : 0;
+                const numTails = Math.log2(denominator) - 2;
+                if (addHelpLine) {
+                    drawHelpLine(parent, x, y);
+                }
+                drawNoteHead(parent, x, y, filled);
+                if (stemLength != 0) {
+                    drawNoteStem(parent, x, y, -40);
+                }
+                if (numTails > 0) {
+                    drawNoteTails(parent, x, y, -40, numTails);
+                }
+            }
+
+            const drawHelpLine = (parent, x, y) => {
+                drawLine(parent, x - 10, y, x + 10, y, 'black', 1);
+            }
+
+            const drawSignSharp = (parent, x, y) => {
+                const offset = 3, size = 6, angleShift = 1;
+                drawLine(parent, x - offset, y - size + (angleShift / 2), x - offset, y + size + (angleShift / 2), 'black', 2); // vertical left
+                drawLine(parent, x + offset, y - size - (angleShift / 2), x + offset, y + size - (angleShift / 2), 'black', 2); // vertical right
+                drawLine(parent, x - size, y - offset + angleShift, x + size, y - offset - angleShift, 'black', 2); // horizontal top
+                drawLine(parent, x - size, y + offset + angleShift, x + size, y + offset - angleShift, 'black', 2); // horizontal bottom
+            }
+
+            const drawSignFlat = (parent, x, y) => {
+                const offset = 5, xShift = offset * 0.4, stemSize = 20;
+                drawLine(parent, x - xShift, y - stemSize, x - xShift, y + offset, 'black', 2);
+                const startX = x - xShift, startY = y - offset;
+                const x1 = startX + 1.3 * offset, y1 = startY;
+                const x2 = x1, y2 = y + 0.2 * offset;
+                const endX = startX, endY = y + offset - 0.6;
+                const d = 'M ' + startX + ' '  + startY + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + endX + ' ' + endY;
+                drawPath(parent, d, 'black', 2, 'none');
+            }
+
+            const drawSign = (parent, x, y, sign) => {
+                const signX = x - 14;
+                switch (sign) {
+                    case '#':
+                        drawSignSharp(parent, signX, y);
+                        break;
+                    case 'b', 'B':
+                        drawSignFlat(parent, signX, y);
+                        break;
+                }
+            }
+
+            const drawTrebleClef = (parent, x, y) => {
+                const d = 'm12.049 3.5296c0.305 3.1263-2.019 5.6563-4.0772 7.7014-0.9349 0.897-0.155 0.148-0.6437 0.594-0.1022-0.479-0.2986-1.731-0.2802-2.11 0.1304-2.6939 2.3198-6.5875 4.2381-8.0236 0.309 0.5767 0.563 0.6231 0.763 1.8382zm0.651 16.142c-1.232-0.906-2.85-1.144-4.3336-0.885-0.1913-1.255-0.3827-2.51-0.574-3.764 2.3506-2.329 4.9066-5.0322 5.0406-8.5394 0.059-2.232-0.276-4.6714-1.678-6.4836-1.7004 0.12823-2.8995 2.156-3.8019 3.4165-1.4889 2.6705-1.1414 5.9169-0.57 8.7965-0.8094 0.952-1.9296 1.743-2.7274 2.734-2.3561 2.308-4.4085 5.43-4.0046 8.878 0.18332 3.334 2.5894 6.434 5.8702 7.227 1.2457 0.315 2.5639 0.346 3.8241 0.099 0.2199 2.25 1.0266 4.629 0.0925 6.813-0.7007 1.598-2.7875 3.004-4.3325 2.192-0.5994-0.316-0.1137-0.051-0.478-0.252 1.0698-0.257 1.9996-1.036 2.26-1.565 0.8378-1.464-0.3998-3.639-2.1554-3.358-2.262 0.046-3.1904 3.14-1.7356 4.685 1.3468 1.52 3.833 1.312 5.4301 0.318 1.8125-1.18 2.0395-3.544 1.8325-5.562-0.07-0.678-0.403-2.67-0.444-3.387 0.697-0.249 0.209-0.059 1.193-0.449 2.66-1.053 4.357-4.259 3.594-7.122-0.318-1.469-1.044-2.914-2.302-3.792zm0.561 5.757c0.214 1.991-1.053 4.321-3.079 4.96-0.136-0.795-0.172-1.011-0.2626-1.475-0.4822-2.46-0.744-4.987-1.116-7.481 1.6246-0.168 3.4576 0.543 4.0226 2.184 0.244 0.577 0.343 1.197 0.435 1.812zm-5.1486 5.196c-2.5441 0.141-4.9995-1.595-5.6343-4.081-0.749-2.153-0.5283-4.63 0.8207-6.504 1.1151-1.702 2.6065-3.105 4.0286-4.543 0.183 1.127 0.366 2.254 0.549 3.382-2.9906 0.782-5.0046 4.725-3.215 7.451 0.5324 0.764 1.9765 2.223 2.7655 1.634-1.102-0.683-2.0033-1.859-1.8095-3.227-0.0821-1.282 1.3699-2.911 2.6513-3.198 0.4384 2.869 0.9413 6.073 1.3797 8.943-0.5054 0.1-1.0211 0.143-1.536 0.143z';
+                let path = drawPath(parent, d, 'black', 0, 'black');
+                path.setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(1.6 1.6)');
+            }
+
+            const drawBassClef = (parent, x, y) => {
+                const clefGroup = addGroup(parent, null);
+                drawPath(clefGroup, "M 243.97900,540.86798 C 244.02398,543.69258 242.76360,546.43815 240.76469,548.40449 C 238.27527,550.89277 235.01791,552.47534 231.69762,553.53261 C 231.25590,553.77182 230.58970,553.45643 231.28550,553.13144 C 232.62346,552.52289 234.01319,552.00050 235.24564,551.18080 C 237.96799,549.49750 240.26523,546.84674 240.82279,543.61854 C 241.14771,541.65352 241.05724,539.60795 240.56484,537.67852 C 240.20352,536.25993 239.22033,534.79550 237.66352,534.58587 C 236.25068,534.36961 234.74885,534.85905 233.74057,535.88093 C 233.47541,536.14967 232.95916,536.89403 233.04435,537.74747 C 233.64637,537.27468 233.60528,537.32732 234.09900,537.10717 C 235.23573,536.60031 236.74349,537.32105 237.02700,538.57272 C 237.32909,539.72295 237.09551,541.18638 235.96036,541.79960 C 234.77512,542.44413 233.02612,542.17738 232.36450,540.90866 C 231.26916,538.95418 231.87147,536.28193 233.64202,534.92571 C 235.44514,533.42924 238.07609,533.37089 240.19963,534.13862 C 242.38419,534.95111 243.68629,537.21483 243.89691,539.45694 C 243.95419,539.92492 243.97896,540.39668 243.97900,540.86798 z ", 'black', 0, 'black');
+                drawPath(clefGroup, "M 248.25999,536.80200 C 248.26766,537.17138 248.11044,537.54065 247.82878,537.78185 C 247.46853,538.11076 246.91933,538.17813 246.47048,538.01071 C 246.02563,537.83894 245.69678,537.39883 245.67145,536.92060 C 245.63767,536.54689 245.75685,536.15479 246.02747,535.88867 C 246.28257,535.61680 246.66244,535.48397 247.03147,535.50645 C 247.41131,535.51452 247.77805,535.70601 248.00489,536.01019 C 248.17962,536.23452 248.26238,536.51954 248.25999,536.80200 z ", 'black', 0, 'black');
+                drawPath(clefGroup, "M 248.25999,542.64502 C 248.26772,543.01469 248.11076,543.38446 247.82878,543.62585 C 247.46853,543.95476 246.91933,544.02213 246.47048,543.85472 C 246.02537,543.68288 245.69655,543.24237 245.67145,542.76389 C 245.63651,542.38990 245.76354,542.00308 246.02700,541.73300 C 246.27663,541.45454 246.66060,541.32790 247.02845,541.34950 C 247.51230,541.36282 247.95159,541.69251 248.15162,542.12465 C 248.22565,542.28740 248.26043,542.46657 248.25999,542.64502 z ", 'black', 0, 'black')
+                clefGroup.setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(1.9 1.9)');
+            }
+
+            const determineReferenceNote = (clef) => {
+                switch(clef) {
+                    case "treble":
+                        return { note: 'G4', shift: 6 };
+                    case "bass":
+                        return { note: 'F3', shift: 2 };
+                }
+            }
+
+            const calculateRelativeShift = (note, base) => {
+                const octaveNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'H'];
+                const octaveDiff = parseInt(note.charAt(1)) - parseInt(base.charAt(1));
+                const octaveShift = -7 * octaveDiff;
+                const noteDiff = octaveNotes.indexOf(note.charAt(0)) - octaveNotes.indexOf(base.charAt(0));
+                const noteShift = -1 * noteDiff;
+                const result = octaveShift + noteShift;
+                return result;
+            }
+
+            const calculateNoteShift = (note, clef) => {
+                const referenceNote = determineReferenceNote(clef);
+                const relativeShift = calculateRelativeShift(note, referenceNote.note);
+                const result = relativeShift + referenceNote.shift;
+                return result;
+
+                // const c4Offset = 10;
+                // const index = octaveNotes.indexOf(note.charAt(0));
+                // const octave = parseInt(note.charAt(1));
+                // const octaveShift = octave - 4;
+                // return c4Offset - index - (octaveShift * 7);
+            }
+
+            const calculateNoteAtShift = (shift, clef) => {
+                const octaveNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'H'];
+                const referenceNote = determineReferenceNote(clef);
+                const referenceNoteIndex = octaveNotes.indexOf(referenceNote.note.charAt(0));
+                const forwardOctaveNotes = octaveNotes.slice(referenceNoteIndex).concat(octaveNotes.slice(0, referenceNoteIndex));
+                const reversedOctaveNotes = octaveNotes.slice(referenceNoteIndex, referenceNoteIndex + 1).concat(octaveNotes.slice(0, referenceNoteIndex).reverse()).concat(octaveNotes.slice(referenceNoteIndex + 1).reverse());
+                // const reversedOctaveNotes = octaveNotes.slice(0, 1).concat(octaveNotes.slice(1).reverse());
+                const shiftRelativeToBase = shift - referenceNote.shift;
+                const index = shiftRelativeToBase % 7;
+                const note = index > 0 ? reversedOctaveNotes[index] : forwardOctaveNotes[index * -1];
+                const octaveShift = Math.floor(shiftRelativeToBase * -1 / 7);
+                const octave = parseInt(referenceNote.note.charAt(1)) + octaveShift;
+                const result = note + octave;
+                return result;
+
+                // const octaveNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'H'];
+                // const reversedOctaveNotes = octaveNotes.slice(0, 1).concat(octaveNotes.slice(1).reverse());
+                // const c4Offset = 10;
+                // const shiftRelativeToC4 = shift - c4Offset;
+                // const index = shiftRelativeToC4 % 7;
+                // const note = index > 0 ? reversedOctaveNotes[index] : octaveNotes[index * -1];
+                // const octaveShift = Math.floor(shiftRelativeToC4 * -1 / 7);
+                // const octave = 4 + octaveShift;
+                // const result = note + octave;
+                // return result;
+            }
+
+            const calculateNoteY = (note, staff, clef) => {
+                const shift = calculateNoteShift(note, clef);
+                return staff.y1 + shift * (staff.lineDistance / 2);
+            }
+
+            const reducetoTaillessValue = (value) => {
+                const denominator = parseInt(value = value.split('/')[1]);
+                return denominator > 4 ? '1/4' : value;
+            }
+
+            const determineRequiredHelpLines = (notes, clef) => {
+                let result = [];
+                const shifts = notes.map(note => calculateNoteShift(note, clef)).sort((a, b) => a - b);
+                const highest = shifts[0], lowest = shifts[shifts.length - 1];
+                for (let above = highest; above < -1; above++) {
+                    if (above % 2 === 0) {
+                        const note = calculateNoteAtShift(above, clef);
+                        result.push(note);
+                    }
+                }
+                for (let below = lowest; below > 9; below--) {
+                    if (below % 2 === 0) {
+                        const note = calculateNoteAtShift(below, clef);
+                        result.push(note);
+                    }
+                }
+                return result;
+            }
+
+            const setHelpLine = (parent, note, x, staff, clef) => {
+                const y = calculateNoteY(note, staff, clef);
+                drawHelpLine(parent, x, y);
+            }
+
+            const setSign = (parent, note, x, staff, clef) => {
+                if (note.length > 2) {
+                    const signGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    signGroup.setAttribute('id', 'sign-' + note);
+                    parent.appendChild(signGroup);
+                    const sign = note.charAt(2);
+                    const y = calculateNoteY(note, staff, clef);
+                    drawSign(signGroup, x, y, sign);
+                }
+            }
+
+            const setNote = (parent, note, value, x, staff, clef) => {
+                const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                nodeGroup.setAttribute('id', 'note-' + [note, value, x].join('-'));
+                parent.appendChild(nodeGroup);
+                const y = calculateNoteY(note, staff, clef);
+                drawNote(nodeGroup, x, y, value, false);
+                if (note.length > 2) {
+                    const sign = note.charAt(2);
+                    drawSign(nodeGroup, x, y, sign);
+                }
+                return nodeGroup;
+            }
+
+            const setChord = (parent, notes, value, x, staff, clef) => {
+                const chordGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                chordGroup.setAttribute('id', 'chord-' + [notes.join('-'), value, x].join('-'));
+                parent.appendChild(chordGroup);
+                const helpLines = determineRequiredHelpLines(notes, clef);
+                helpLines.forEach(note => setHelpLine(chordGroup, note, x, staff, clef));
+                for (let i = 0; i < notes.length; i++) {
+                    const note = notes[i];
+                    const modifiedNote = note.substring(0, 2);
+                    const isLast = i === notes.length - 1;
+                    const modifiedValue = isLast ? value : reducetoTaillessValue(value);
+                    setNote(chordGroup, modifiedNote, modifiedValue, x, staff, clef);
+                }
+                const signedNotes = notes.filter(note => note.length > 2);
+                for (let i = 0; i < signedNotes.length; i++) {
+                    const note = signedNotes[i];
+                    const modifiedX = x - ((i % 2) * 10) - (signedNotes.length - i);
+                    setSign(chordGroup, note, modifiedX, staff, clef);
+                }
+                return chordGroup;
+            }
+
+            const setClef = (parent, clef, x, staff) => {
+                const clefGroup = addGroup(parent, "clef-" + clef + "-" + x);
+                switch(clef) {
+                    case "treble":
+                        drawTrebleClef(clefGroup, x - 15, staff.y1 - staff.lineDistance);
+                        break;
+                    case "bass":
+                        drawBassClef(clefGroup, x - 460, staff.y1 - 1005 - staff.lineDistance);
+                        break;
+                }
+            }
+
+            const svg = document.getElementById("svg"), svgWidth = 800, svgHeight = 200;
+            const staff = { x1: 50, y1: 50, width: 300, lineDistance: 10 };
+            drawStaff(svg, staff, 'black');
+            setClef(svg, 'bass', 70, staff);
+            setNote(svg, 'C4B', '1/4', 200, staff, 'bass');
+            setNote(svg, 'E4#', '1/8', 200, staff, 'bass');
+            setChord(svg, ['C4B'], '1/8', 250, staff, 'bass');
+            drawNote(svg, 60, 55, '1/1', false);
+            drawNote(svg, 80, 55, '1/2', false);
+            drawNote(svg, 100, 55, '1/4', false);
+            drawNote(svg, 120, 55, '1/8', false);
+            drawNote(svg, 140, 55, '1/16', false);
+            drawNote(svg, 160, 55, '1/32', false);
+            drawNote(svg, 180, 55, '1/64', false);
+
+        </script>
+    </body>
+</html>
