@@ -602,27 +602,48 @@
             }
 
             const getGermanNoteName = (note) => {
+                const nameWithoutOctave = getGermanNoteNameWithoutOctave(note);
+                const octave = parseInt(note.charAt(1));
+                let result = octave >= 3 ? nameWithoutOctave.toLowerCase() : nameWithoutOctave;
+                const octaveAddition = octave >= 4 ? "'".repeat(octave - 3) : '';
+                result += octaveAddition;
+                return result;
+                // const signAdditions = { '': '', '#': 'is', 'B': 'es' };
+                // const octave = parseInt(note.charAt(1));
+                // const baseNote = note.charAt(0);
+                // const baseName = octave >= 3 ? baseNote.toLowerCase() : baseNote.toUpperCase();
+                // const sign = note.length > 2 ? note.charAt(2) : '';
+                // const signAdditionBase = signAdditions[sign];
+                // const signAddition = (baseNote === 'E' || baseNote === 'A' ) && signAdditionBase === 'es' ? 's' : signAdditionBase;
+                // const octaveAddition = octave >= 4 ? "'".repeat(octave - 3) : '';
+                // let name = baseName + signAddition;
+                // if (name === 'Hes') {
+                //     name = 'B';
+                // }
+                // if (name === 'hes') {
+                //     name = 'b';
+                // }
+                // const result = name + octaveAddition;
+                // return result;
+            }
+
+            const getGermanNoteNameWithoutOctave = (note) => {
                 const signAdditions = { '': '', '#': 'is', 'B': 'es' };
                 const octave = parseInt(note.charAt(1));
                 const baseNote = note.charAt(0);
-                const baseName = octave >= 3 ? baseNote.toLowerCase() : baseNote.toUpperCase();
+                const baseName = baseNote.toUpperCase();
                 const sign = note.length > 2 ? note.charAt(2) : '';
                 const signAdditionBase = signAdditions[sign];
                 const signAddition = (baseNote === 'E' || baseNote === 'A' ) && signAdditionBase === 'es' ? 's' : signAdditionBase;
-                const octaveAddition = octave >= 4 ? "'".repeat(octave - 3) : '';
                 let name = baseName + signAddition;
                 if (name === 'Hes') {
                     name = 'B';
                 }
-                if (name === 'hes') {
-                    name = 'b';
-                }
-                const result = name + octaveAddition;
-                return result;
+                return name;
             }
 
             const getGermanChordName = (baseNote, type, inversion) => {
-                const formattedBaseNoteName = getGermanNoteName(baseNote);
+                const formattedBaseNoteName = getGermanNoteNameWithoutOctave(baseNote);
                 const formattedChordType = type === 'major' ? 'Dur' : 'Moll';
                 let result = [formattedBaseNoteName, formattedChordType].join('-');
                 if (inversion > 0) {
@@ -664,7 +685,9 @@
                         const octaveValue = octave * 12 + cleanValue;
                         values[note + octave] = octaveValue;
                         values[note + octave+ '#'] = octaveValue + 1;
+                        values[note + octave+ '##'] = octaveValue + 2;
                         values[note + octave+ 'B'] = octaveValue - 1;
+                        values[note + octave+ 'BB'] = octaveValue - 2;
                     })
                 }
                 return values;
@@ -765,15 +788,7 @@
                 return result;
             }
 
-            const determinePureAndSmallIntervals = () => {
-                return determineIntervalsWithQualifiers(['', 'kleine']);
-            }
-
-            const determinePureAndSmallAndBigIntervals = () => {
-                return determineIntervalsWithQualifiers(['', 'kleine', 'große']);
-            }
-
-            const determineIntervalsWithQualifiers = (qualifiers) => {
+            const determineIntervals = () => {
                 let result = [];
                 const intervals = getPreciseIntervalNames();
                 const baseIntervalNames = Object.keys(intervals);
@@ -784,19 +799,29 @@
                     for (let i = 0; i < halfTones.length; i++) {
                         const numHalfTones = halfTones[i];
                         const qualifier = intervalDetail[numHalfTones];
-                        if (qualifiers.indexOf(qualifier) >= 0) {
-                            const qualifiedIntervalName = [qualifier, baseIntervalName].join(' ').trim();
-                            const entry = {
-                                intervalName: qualifiedIntervalName,
-                                baseIntervalName: baseIntervalName,
-                                qualifier: qualifier,
-                                halfTones: parseInt(numHalfTones)
-                            }
-                            result.push(entry);
+                        const qualifiedIntervalName = [qualifier, baseIntervalName].join(' ').trim();
+                        const entry = {
+                            intervalName: qualifiedIntervalName,
+                            baseIntervalName: baseIntervalName,
+                            qualifier: qualifier,
+                            halfTones: parseInt(numHalfTones)
                         }
+                        result.push(entry);
                     }
                 }
                 return result;
+            }
+
+            const determinePureAndSmallIntervals = () => {
+                return determineIntervalsWithQualifiers(['', 'kleine']);
+            }
+
+            const determinePureAndSmallAndBigIntervals = () => {
+                return determineIntervalsWithQualifiers(['', 'kleine', 'große']);
+            }
+
+            const determineIntervalsWithQualifiers = (qualifiers) => {
+                return determineIntervals.filter(entry => qualifiers.indexOf(entry.qualifier) >= 0);
             }
 
             const determineNoteRelativeTo = (note, diff, halfTones) => {
@@ -826,10 +851,10 @@
             }
 
             const isNoteInRange = (note, range) => {
-                const allNotes = getAllOctaveNotes();
-                const lowestIndex = allNotes.indexOf(range[0]);
-                const noteIndex = allNotes.indexOf(note);
-                const highestIndex = allNotes.indexOf(range[0]);
+                const allNotes = getAllHalftones();
+                const lowestIndex = allNotes[range[0]];
+                const noteIndex = allNotes[note];
+                const highestIndex = allNotes[range[1]];
                 const result = noteIndex >= lowestIndex && noteIndex <= highestIndex;
                 return result;
             }
@@ -1008,7 +1033,7 @@
             }
 
             const askForIntervalHalfToneSize = () => {
-                const intervals = determinePureAndSmallIntervals();
+                const intervals = determineIntervals();
                 const solution = getRandomElementFrom(intervals);
                 setQuestionText("Wie viele Halbtonschritte hat eine " + solution.intervalName + "?");
                 let answers = [null, null, null, null];
