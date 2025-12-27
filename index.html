@@ -125,6 +125,18 @@
                 return rect;
             }
 
+            const drawCircle = (parent, cx, cy, r, stroke, strokeWidth, fill) => {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', cx);
+                circle.setAttribute('cy', cy);
+                circle.setAttribute('r', r);
+                circle.setAttribute('stroke', stroke);
+                circle.setAttribute('stroke-width', strokeWidth);
+                circle.setAttribute('fill', fill);
+                parent.appendChild(circle);
+                return circle;
+            }
+
             const drawWholePause = (parent, x, staff, fill) => {
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 const width = staff.lineDistance;
@@ -143,28 +155,87 @@
                 return drawRectangle(parent, shiftedX, y, width, height, fill);
             }
 
+            const drawQuarterPause = (parent, x, staff, fill) => {
+                const group = addGroup(parent, null);
+                const d = 'm 138.76116,462.5307 c -6.84377,8.15627 -10.26565,14.25001 -10.26562,18.28125 -3e-5,3.89063 3.25778,9.72656 9.77343,17.50781 l -2.03906,2.88282 c -3.28128,-1.92189 -6.09377,-2.88283 -8.4375,-2.88282 -3.04689,-10e-6 -4.57033,1.82811 -4.57031,5.48438 -2e-5,3.74998 1.66404,7.47654 4.99219,11.17969 l -1.82813,2.74218 c -9.23438,-6.84377 -13.85157,-12.93751 -13.85156,-18.28125 -1e-5,-2.71876 0.93749,-4.875 2.8125,-6.46875 1.73436,-1.5 3.98436,-2.25 6.75,-2.25 1.78123,0 3.74998,0.46875 5.90625,1.40625 l -14.13281,-18.77343 c 6.70311,-5.90624 10.05467,-11.24998 10.05468,-16.03125 -10e-6,-3.79685 -2.27345,-8.57809 -6.82031,-14.34375 l 5.625,0 16.03125,19.54687';
+                const path = drawPath(group, d, 'none', 0, fill);
+                const originalWidth = 26, originalHeight = 74;
+                const xShift = -50;
+                const yShift = -182;
+                const scale = 0.4;
+                path.setAttribute('transform', 'translate(' + xShift + ' ' + yShift + ') scale(' + scale + ' ' + scale + ')');
+                const y = staff.y1 + staff.lineDistance;
+                group.setAttribute('transform', 'translate(' + x + ' ' + y + ')');
+                return path;
+            }
+
+            const drawPauseTail = (parent, x, y, staff, fill) => {
+                const r = staff.lineDistance / 3;
+                const strokeWidth = staff.lineDistance / 5;
+                drawCircle(parent, x, y, r, 'black', 0, 'black');
+                const arcWidth = staff.lineDistance;
+                const arcHeight = staff.lineDistance * 0.5;
+                const x1 = x - r, y1 = y + arcHeight;
+                const x2 = x1 + arcWidth, y2 = y1;
+                const x3 = x2, y3 = y;
+                const d = 'M ' + x + ' ' + y + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + x3 + ' ' + y3;
+                drawPath(parent, d, 'black', strokeWidth, 'none');
+            }
+
+            const drawTailedPause = (parent, numTails, x, staff, fill) => {
+                let top = Infinity, right = -Infinity;
+                const tailPositions = [1, 2, 0, 3];
+                for (let i = 0; i < numTails; i++) {
+                    const position = tailPositions[i];
+                    const offset = position * staff.lineDistance + staff.lineDistance / 2;
+                    const shiftedX = x - position * staff.lineDistance * 0.2;
+                    const shiftedY = staff.y1 + offset;
+                    top = Math.min(top, shiftedY);
+                    right = Math.max(shiftedX + staff.lineDistance - 3, right);
+                    drawPauseTail(parent, shiftedX, shiftedY, staff, fill);
+                }
+                const strokeWidth = staff.lineDistance / 5;
+                const y = top;
+                drawLine(parent, right, top, x, y + staff.lineDistance * (numTails + 1), 'black', strokeWidth);
+            }
+
             const drawPause = (parent, x, value, staff, fill) => {
-                switch (value) {
+                const undotted = value.replace('.', '');
+                switch (undotted) {
                     case '1/1':
                         drawWholePause(parent, x, staff, fill);
                         break;
                     case '1/2':
                         drawHalfPause(parent, x, staff, fill);
                         break;
+                    case '1/4':
+                        drawQuarterPause(parent, x, staff, fill);
+                        break;
+                    case '1/8':
+                        drawTailedPause(parent, 1, x, staff, fill);
+                        break;
+                    case '1/16':
+                        drawTailedPause(parent, 2, x, staff, fill);
+                        break;
+                    case '1/32':
+                        drawTailedPause(parent, 3, x, staff, fill);
+                        break;
+                    case '1/64':
+                        drawTailedPause(parent, 4, x, staff, fill);
+                        break;
+                }
+                const dotted = value.endsWith('.');
+                if (dotted) {
+                    const shiftedX = x + staff.lineDistance * 1.4;
+                    const shiftedY = staff.y1 + staff.lineDistance * 1.5;
+                    drawDot(parent, shiftedX, shiftedY, staff);
                 }
             }
 
             const drawDot = (parent, x, y, staff) => {
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 const r = staff.lineDistance / 5;
                 const strokeWidth = staff.lineDistance / 5;
-                circle.setAttribute('cx', x);
-                circle.setAttribute('cy', y);
-                circle.setAttribute('r', r);
-                circle.setAttribute('fill', 'black');
-                circle.setAttribute('stroke', 'black');
-                parent.appendChild(circle);
-                return circle;
+                return drawCircle(parent, x, y, r, 'black', strokeWidth, 'black');
             }
 
             const drawNoteHead = (parent, x, y, filled, staff) => {
@@ -223,7 +294,7 @@
                 const numTails = Math.log2(denominator) - 2;
                 const dotted = value.endsWith('.');
                 if (dotted) {
-                    drawDot(parent, x + staff.lineDistance, y, staff);
+                    drawDot(parent, x + staff.lineDistance * 1.2, y, staff);
                 }
                 if (addHelpLine) {
                     drawHelpLine(parent, x, y, staff);
@@ -334,7 +405,7 @@
             }
 
             const reducetoTaillessValue = (value) => {
-                const denominator = parseInt(value = value.split('/')[1]);
+                const denominator = parseInt(value.split('/')[1]);
                 return denominator > 4 ? '1/4' : value;
             }
 
@@ -852,14 +923,14 @@
                 const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                 setQuestionText("Wie heißt dieser Akkord?");
                 const questionDiagram = document.getElementById("question-diagram");
-                const staff = { x1: 100, y1: 50, width: 100, lineDistance: 10 };
+                const staff = { x1: 75, y1: 50, width: 150, lineDistance: 10 };
                 drawStaff(questionDiagram, staff, 'gray');
                 const clef = getRandomElementFrom(['treble', 'bass']);
-                setClef(questionDiagram, clef, 120, staff);
+                setClef(questionDiagram, clef, 100, staff);
                 const range = ranges[clef];
                 const randomChord = randomizeTriad(range);
                 const chord = buildTriad(randomChord.baseNote, randomChord.chordType);
-                setChord(questionDiagram, chord, '1/8', 170, staff, clef);
+                setChord(questionDiagram, chord, '1/4', 170, staff, clef);
                 let answers = [null, null, null, null];
                 const correctAnswer = randomizeNumberBetween(0, 3);
                 const formattedCorrectAnswer = getGermanChordName(randomChord.baseNote, randomChord.chordType);
