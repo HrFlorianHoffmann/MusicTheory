@@ -5,11 +5,14 @@
                 font-family: Helvetica;
                 font-size: 18pt;
             }
-            th, td {
-                padding: 15px;
+            table {
+                border-spacing: 15px;
+            }
+            .answer {
+                background-color: rgb(211, 228, 255);
             }
         </style>
-        <div id="question-section" width="800" align="center">
+        <div id="question-section" widtasdasdh="800" align="center">
             <table>
                 <tr>
                     <td id="wrong-answer-icon" align="center" style="opacity: 0">
@@ -28,21 +31,21 @@
         <div id="answer-section" width="800" align="center">
             <table>
                 <tr>
-                    <td id="answer-1" align="center">
+                    <td id="answer-1" class="answer" align="center">
                         <p id="answer-text-1">Answer 1</p>
                         <svg id="answer-diagram-1" width="300" height="100"></svg>
                     </td>
-                    <td id="answer-2" align="center">
+                    <td id="answer-2" class="answer" align="center">
                         <p id="answer-text-2">Answer 2</p>
                         <svg id="answer-diagram-2" width="300" height="100"></svg>
                     </td>
                 </tr>
                 <tr>
-                    <td id="answer-3" align="center">
+                    <td id="answer-3" class="answer"  align="center">
                         <p id="answer-text-3">Answer 3</p>
                         <svg id="answer-diagram-3" width="300" height="100"></svg>
                     </td>
-                    <td id="answer-4" align="center">
+                    <td id="answer-4" class="answer" align="center">
                         <p id="answer-text-4">Answer 4</p>
                         <svg id="answer-diagram-4" width="300" height="100"></svg>
                     </td>
@@ -111,6 +114,58 @@
                 return path;
             }
 
+            const drawRectangle = (parent, x, y, width, height, fill) => {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', x);
+                rect.setAttribute('y', y);
+                rect.setAttribute('width', width);
+                rect.setAttribute('height', height);
+                rect.setAttribute('fill', fill);
+                parent.appendChild(rect);
+                return rect;
+            }
+
+            const drawWholePause = (parent, x, staff, fill) => {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                const width = staff.lineDistance;
+                const height = staff.lineDistance / 2;
+                const shiftedX = x - width / 2;
+                const y = staff.y1 + staff.lineDistance;
+                return drawRectangle(parent, shiftedX, y, width, height, fill);
+            }
+
+            const drawHalfPause = (parent, x, staff, fill) => {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                const width = staff.lineDistance;
+                const height = staff.lineDistance / 2;
+                const shiftedX = x - width / 2;
+                const y = staff.y1 + staff.lineDistance + height;
+                return drawRectangle(parent, shiftedX, y, width, height, fill);
+            }
+
+            const drawPause = (parent, x, value, staff, fill) => {
+                switch (value) {
+                    case '1/1':
+                        drawWholePause(parent, x, staff, fill);
+                        break;
+                    case '1/2':
+                        drawHalfPause(parent, x, staff, fill);
+                        break;
+                }
+            }
+
+            const drawDot = (parent, x, y, staff) => {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                const r = staff.lineDistance / 5;
+                const strokeWidth = staff.lineDistance / 5;
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+                circle.setAttribute('r', r);
+                circle.setAttribute('fill', 'black');
+                circle.setAttribute('stroke', 'black');
+                parent.appendChild(circle);
+                return circle;
+            }
 
             const drawNoteHead = (parent, x, y, filled, staff) => {
                 const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
@@ -166,6 +221,10 @@
                 const stemDirection = denominator > 1 ? -1 : 0;
                 const stemLength = stemDirection * staff.lineDistance * 4;
                 const numTails = Math.log2(denominator) - 2;
+                const dotted = value.endsWith('.');
+                if (dotted) {
+                    drawDot(parent, x + staff.lineDistance, y, staff);
+                }
                 if (addHelpLine) {
                     drawHelpLine(parent, x, y, staff);
                 }
@@ -229,7 +288,7 @@
                 upperDotPath.setAttribute('transform', 'translate(-240 -540)');
                 const lowerDotPath = drawPath(clefGroup, "M 248.25999,542.64502 C 248.26772,543.01469 248.11076,543.38446 247.82878,543.62585 C 247.46853,543.95476 246.91933,544.02213 246.47048,543.85472 C 246.02537,543.68288 245.69655,543.24237 245.67145,542.76389 C 245.63651,542.38990 245.76354,542.00308 246.02700,541.73300 C 246.27663,541.45454 246.66060,541.32790 247.02845,541.34950 C 247.51230,541.36282 247.95159,541.69251 248.15162,542.12465 C 248.22565,542.28740 248.26043,542.46657 248.25999,542.64502 z ", 'black', 0, 'black')
                 lowerDotPath.setAttribute('transform', 'translate(-240 -540)');
-                const scale = staff.lineDistance / 5.3;
+                const scale = staff.lineDistance / 5.5;
                 clefGroup.setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(' + scale + ' ' + scale + ')');
             }
 
@@ -329,6 +388,12 @@
                 return nodeGroup;
             }
 
+            const setPause = (parent, value, x, staff, clef) => {
+                const pauseGroup = addGroup(parent, 'pause-' + [value, x].join('-'));
+                drawPause(pauseGroup, x, value, staff, 'black');
+                return pauseGroup;
+            }
+
             const setChord = (parent, notes, value, x, staff, clef) => {
                 const chordGroup = addGroup(parent, 'chord-' + [notes.join('-'), value, x].join('-'));
                 const helpLines = determineRequiredHelpLines(notes, clef);
@@ -371,6 +436,28 @@
                 return array[index];
             }
 
+            const removeRandomElementFrom = (array) => {
+                const index = randomizeNumberBetween(0, array.length - 1);
+                const element = array[index];
+                const rest = array.slice(0, index).concat(array.slice(index + 1));
+                const result = {
+                    element: element,
+                    rest: rest
+                }
+                return result;
+            }
+
+            const getRandomElementsFrom = (array, num) => {
+                let rest = JSON.parse(JSON.stringify(array));
+                let result = [];
+                while (result.length < num && rest.length > 0) {
+                    const remainder = removeRandomElementFrom(rest);
+                    result.push(remainder.element);
+                    rest = remainder.rest;
+                }
+                return result;
+            }
+
             const randomizeNoteBetween = (min, max, signs) => {
                 const allOctaveNotes = getAllOctaveNotes();
                 const minIndex = allOctaveNotes.indexOf(min);
@@ -388,6 +475,20 @@
                 const randomOctave = getRandomElementFrom(octaves);
                 const randomSign = getRandomElementFrom(signs);
                 const result = randomNote + randomOctave + randomSign;
+                return result;
+            }
+
+            const randomizeTriad = (noteRange) => {
+                return randomizeChord(noteRange, ['', '#', 'B'], ['major', 'minor']);
+            }
+
+            const randomizeChord = (noteRange, signs, types) => {
+                const baseNote = randomizeNoteBetween(noteRange[0], noteRange[1], signs);
+                const chordType = getRandomElementFrom(types);
+                const result = {
+                    baseNote: baseNote,
+                    chordType: chordType
+                }
                 return result;
             }
 
@@ -417,7 +518,21 @@
                 const signAdditionBase = signAdditions[sign];
                 const signAddition = (baseNote === 'E' || baseNote === 'A' ) && signAdditionBase === 'es' ? 's' : signAdditionBase;
                 const octaveAddition = octave >= 4 ? "'".repeat(octave - 3) : '';
-                const result = baseName + signAddition + octaveAddition;
+                let name = baseName + signAddition;
+                if (name === 'Hes') {
+                    name = 'B';
+                }
+                if (name === 'hes') {
+                    name = 'b';
+                }
+                const result = name + octaveAddition;
+                return result;
+            }
+
+            const getGermanChordName = (baseNote, type) => {
+                const formattedBaseNoteName = getGermanNoteName(baseNote);
+                const formattedChordType = type === 'major' ? 'Dur' : 'Moll';
+                const result = [formattedBaseNoteName, formattedChordType].join('-');
                 return result;
             }
 
@@ -443,7 +558,7 @@
                 return absolute;
             }
 
-            const calculateHalfTone = (note) => {
+            const getAllHalftones = () => {
                 const cleanValues = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'H': 11};
                 let values = [];
                 for (let octave = 0; octave <= 8; octave++) {
@@ -455,7 +570,19 @@
                         values[note + octave+ 'B'] = octaveValue - 1;
                     })
                 }
+                return values;
+            }
+
+            const calculateHalfTone = (note) => {
+                const values = getAllHalftones();
                 return values[note];
+            }
+
+            const calculateNotesFromHalfTone = (halfTone) => {
+                const values = getAllHalftones();
+                const names = Object.keys(values);
+                const result = names.filter(name => values[name] === halfTone);
+                return result;
             }
 
             const calculateIntervalInHalfTones = (a, b) => {
@@ -529,19 +656,140 @@
                 const qualifier = !!detailEntry ? detailEntry : null;
                 const result = !!qualifier ? [qualifier, baseIntervalName].join(' ') : null;
                 return result;
+            }
 
-                // const halfToneInterval = calculateIntervalInHalfTones(a, b);
-                // const intervalNames = getIntervalNames();
-                // const result = halfToneInterval >= 0 && halfToneInterval < intervalNames.length ? intervalNames[halfToneInterval] : null;
-                // return result;
+            const randomizePreciseIntervalName = (a, b) => {
+                const intervalDetails = getPreciseIntervalNames();
+                const baseIntervalName = getRandomElementFrom(Object.keys(intervalDetails));
+                const baseIntervalDetails = intervalDetails[baseIntervalName];
+                const intervalSize = getRandomElementFrom(Object.keys(baseIntervalDetails));
+                const qualifier = baseIntervalDetails[intervalSize];
+                const result = [qualifier, baseIntervalName].join(' ');
+                return result;
+            }
+
+            const determinePureAndSmallIntervalls = () => {
+                let result = [];
+                const intervals = getPreciseIntervalNames();
+                const baseIntervalNames = Object.keys(intervals);
+                for (let j = 0; j < baseIntervalNames.length; j++) {
+                    const baseIntervalName = baseIntervalNames[j];
+                    const intervalDetail = intervals[baseIntervalName];
+                    const halfTones = Object.keys(intervalDetail);
+                    for (let i = 0; i < halfTones.length; i++) {
+                        const numHalfTones = halfTones[i];
+                        const qualifier = intervalDetail[numHalfTones];
+                        if (qualifier === "" || qualifier === "kleine") {
+                            const qualifiedIntervalName = [qualifier, baseIntervalName].join(' ').trim();
+                            const entry = {
+                                intervalName: qualifiedIntervalName,
+                                baseIntervalName: baseIntervalName,
+                                qualifier: qualifier,
+                                halfTones: parseInt(numHalfTones)
+                            }
+                            result.push(entry);
+                        }
+                    }
+                }
+                return result;
+            }
+
+            const determineNoteRelativeTo = (note, diff, halfTones) => {
+                const allNotes = getAllOctaveNotes();
+                const baseNote = note.substring(0, 2);
+                const index = allNotes.indexOf(baseNote);
+                const otherIndex = index + diff;
+                let otherNote = allNotes[otherIndex];
+                while (calculateIntervalInHalfTones(note, otherNote) < halfTones) {
+                    otherNote += '#';
+                }
+                while (calculateIntervalInHalfTones(note, otherNote) > halfTones) {
+                    otherNote += 'B';
+                }
+                return otherNote;
+            }
+
+            const buildTriad = (baseNote, type) => {
+                const middleHalfTonesDiff = type === 'major' ? 4 : 3;
+                const middle = determineNoteRelativeTo(baseNote, 2, middleHalfTonesDiff);
+                const top = determineNoteRelativeTo(baseNote, 4, 7);
+                return [baseNote, middle, top];
+            }
+
+            const fillWithWrongAnswers = (answers, wrongAnswers) => {
+                let result = JSON.parse(JSON.stringify(answers));
+                let j = 0;
+                for (let i = 0; i < 4; i++) {
+                    if (result[i] === null) {
+                        result[i] = wrongAnswers[j];
+                        j++;
+                    }
+                }
+                return result;
+            }
+
+            const listNumbers = (from, to) => {
+                let result = [];
+                for (let i = from; i <= to; i++) {
+                    result.push(i);
+                }
+                return result;
+            }
+
+            const getFormattedValue = (value) => {
+                const undotted = value.replace('.', '');
+                let result = undotted;
+                if (value.endsWith('.')) {
+                    const nextSmaller = getNextSmallerValue(undotted);
+                    result += ' + ' + getFormattedValue(nextSmaller);
+                }
+                return result;
+            }
+
+            const getNextSmallerValue = (value) => {
+                const values = listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i);
+                const index = values.indexOf(value);
+                const result = values[index + 1];
+                return result;
+            }
+
+            const askForValue = () => {
+                const values = listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i).flatMap(val => val === '1/64' ? [val] : [val, val + '.']);
+                const type = getRandomElementFrom(['note', 'pause']);
+                const text = type === 'note' ? 'Note' : 'Pause';
+                setQuestionText("Welchen Wert hat diese " + text + "?");
+                const questionDiagram = document.getElementById("question-diagram");
+                const staff = { x1: 100, y1: 50, width: 100, lineDistance: 10 };
+                drawStaff(questionDiagram, staff, 'gray');
+                const value = getRandomElementFrom(values);
+                if (type === 'note') {
+                    setNote(questionDiagram, 'H4', value, 150, staff, 'treble');
+                } else {
+                    setPause(questionDiagram, value, 150, staff);
+                }
+                let answers = [null, null, null, null];
+                const correctAnswer = randomizeNumberBetween(0, 3);
+                answers[correctAnswer] = getFormattedValue(value);
+                for (let i = 0; i < 4; i++) {
+                    if (!answers[i]) {
+                        let duplicate = true, formattedAnswer = null;
+                        while (duplicate) {
+                            formattedAnswer = getFormattedValue(getRandomElementFrom(values));
+                            duplicate = answers.indexOf(formattedAnswer) != -1;
+                        }
+                        answers[i] = formattedAnswer;
+                    }
+                }
+                setAnswerTexts(answers);
+                setEventListeners(correctAnswer + 1);
             }
 
             const askForNoteName = () => {
-                const ranges = { treble: ['E3', 'E6'], bass: ['C2', 'A4']};
+                const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                 setQuestionText("Wie heißt diese Note?");
                 const questionDiagram = document.getElementById("question-diagram");
                 const staff = { x1: 100, y1: 50, width: 100, lineDistance: 10 };
-                drawStaff(questionDiagram, staff, 'black');
+                drawStaff(questionDiagram, staff, 'gray');
                 const clef = getRandomElementFrom(['treble', 'bass']);
                 setClef(questionDiagram, clef, 120, staff);
                 const range = ranges[clef];
@@ -566,11 +814,11 @@
             }
 
             const askForInterval = () => {
-                const ranges = { treble: ['E3', 'E6'], bass: ['C2', 'A4']};
+                const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                 setQuestionText("Wie heißt dieses Intervall?");
                 const questionDiagram = document.getElementById("question-diagram");
                 const staff = { x1: 50, y1: 50, width: 200, lineDistance: 10 };
-                drawStaff(questionDiagram, staff, 'black');
+                drawStaff(questionDiagram, staff, 'gray');
                 const clef = getRandomElementFrom(['treble', 'bass']);
                 setClef(questionDiagram, clef, 70, staff);
                 const range = ranges[clef];
@@ -590,7 +838,7 @@
                     if (!answers[i]) {
                         let duplicate = true, formattedAnswer = null;
                         while (duplicate) {
-                            formattedAnswer = getRandomElementFrom(getIntervalNames());
+                            formattedAnswer = randomizePreciseIntervalName();
                             duplicate = answers.indexOf(formattedAnswer) != -1;
                         }
                         answers[i] = formattedAnswer;
@@ -600,9 +848,61 @@
                 setEventListeners(correctAnswer + 1);
             }
 
+            const askForChord = () => {
+                const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
+                setQuestionText("Wie heißt dieser Akkord?");
+                const questionDiagram = document.getElementById("question-diagram");
+                const staff = { x1: 100, y1: 50, width: 100, lineDistance: 10 };
+                drawStaff(questionDiagram, staff, 'gray');
+                const clef = getRandomElementFrom(['treble', 'bass']);
+                setClef(questionDiagram, clef, 120, staff);
+                const range = ranges[clef];
+                const randomChord = randomizeTriad(range);
+                const chord = buildTriad(randomChord.baseNote, randomChord.chordType);
+                setChord(questionDiagram, chord, '1/8', 170, staff, clef);
+                let answers = [null, null, null, null];
+                const correctAnswer = randomizeNumberBetween(0, 3);
+                const formattedCorrectAnswer = getGermanChordName(randomChord.baseNote, randomChord.chordType);
+                answers[correctAnswer] = formattedCorrectAnswer;
+                for (let i = 0; i < 4; i++) {
+                    if (!answers[i]) {
+                        let duplicate = true, formattedAnswer = null;
+                        while (duplicate) {
+                            const wrongChord = randomizeTriad(range);
+                            formattedAnswer = getGermanChordName(wrongChord.baseNote, wrongChord.chordType);
+                            duplicate = answers.indexOf(formattedAnswer) != -1;
+                        }
+                        answers[i] = formattedAnswer;
+                    }
+                }
+                setAnswerTexts(answers);
+                setEventListeners(correctAnswer + 1);
+            }
+
+            const askForIntervalHalfToneSize = () => {
+                const intervals = determinePureAndSmallIntervalls();
+                const solution = getRandomElementFrom(intervals);
+                setQuestionText("Wie viele Halbtonschritte hat eine " + solution.intervalName + "?");
+                let answers = [null, null, null, null];
+                const correctAnswer = randomizeNumberBetween(0, 3);
+                answers[correctAnswer] = solution.halfTones;
+                let wrongCandidates = [];
+                const from = Math.max(0, solution.halfTones - 4);
+                const to = solution.halfTones + 4;
+                for (let i = from; i <= to; i++) {
+                    if (i != solution.halfTones) {
+                        wrongCandidates.push(i);
+                    }
+                }
+                const wrongAnswers = getRandomElementsFrom(wrongCandidates, 3);
+                answers = fillWithWrongAnswers(answers, wrongAnswers);
+                setAnswerTexts(answers);
+                setEventListeners(correctAnswer + 1);
+            }
+
             const askNextQuestion = () => {
                 reset();
-                const next = getRandomElementFrom([askForNoteName, askForInterval]);
+                const next = getRandomElementFrom([askForNoteName, askForInterval, askForChord, askForIntervalHalfToneSize, askForValue]);
                 next();
             }
 
@@ -643,16 +943,35 @@
                 updateStatistics();
                 setOpacityOfElementWithId("correct-answer-icon", 0);
                 const wrongAnswerElement = setOpacityOfElementWithId("wrong-answer-icon", 1);
+                const correctAnswer = state.correctAnswer;
+                const correctAnswerElement = document.getElementById("answer-" + correctAnswer);
+                correctAnswerElement.style.backgroundColor = 'YellowGreen';
                 fadeOut(wrongAnswerElement, 500);
             }
 
+            const highlightAnswer = (event) => {
+                event.srcElement.style.backgroundColor = 'gold';
+            }
+
+            const unhighlightAnswer = (element) => {
+                event.srcElement.style.backgroundColor = 'rgb(211, 228, 255)';
+            }
+
             const setEventListeners = (correctAnswer) => {
+                state.correctAnswer = correctAnswer;
                 for (let i = 1; i <= 4; i++) {
                     const element = document.getElementById("answer-" + i);
-                    element.removeEventListener("click", wrongAnswerPressed);
-                    element.removeEventListener("click", correctAnswerPressed);
+                    element.style.backgroundColor = 'rgb(211, 228, 255)';
                     const attachedFunction = i === correctAnswer ? correctAnswerPressed : wrongAnswerPressed;
+                    element.removeEventListener("click", correctAnswerPressed);
+                    element.removeEventListener("click", wrongAnswerPressed);
                     element.addEventListener("click", attachedFunction);
+                    const elements = document.getElementsByClassName("answer");
+                    for (let i = 0; i < elements.length; i++) {
+                        const element = elements[i];
+                        element.addEventListener("mouseenter", highlightAnswer);
+                        element.addEventListener("mouseleave", unhighlightAnswer);
+                    }
                 }
             }
 
@@ -681,12 +1000,16 @@
                 document.getElementById("wrong-stat").textContent = "Falsch: " + statistics.wrongAnswers;
             }
 
+            let state = {
+                correctAnswer: null
+            }
+
             let statistics = {
                 correctAnswers: 0,
                 wrongAnswers: 0
             }
 
-            askForInterval();
+            askNextQuestion();
 
         </script>
     </body>
