@@ -441,9 +441,12 @@
             const setSign = (parent, note, x, staff, clef) => {
                 if (note.length > 2) {
                     const signGroup = addGroup(parent, 'sign-' + note);
-                    const sign = note.charAt(2);
                     const y = calculateNoteY(note, staff, clef);
-                    drawSign(signGroup, x, y, sign, staff);
+                    for (let i = 2; i < note.length; i++) {
+                        const sign = note.charAt(i);
+                        const xShift = x - (i - 2) * staff.lineDistance * 1.2;
+                        drawSign(signGroup, xShift, y, sign, staff);
+                    }
                 }
             }
 
@@ -453,8 +456,11 @@
                 const y = calculateNoteY(note, staff, clef);
                 drawNote(nodeGroup, x, y, value, false, staff);
                 if (note.length > 2) {
-                    const sign = note.charAt(2);
-                    drawSign(nodeGroup, x, y, sign, staff);
+                    for (let i = 2; i < note.length; i++) {
+                        const sign = note.charAt(i);
+                        const xShift = x - (i - 2) * staff.lineDistance * 1.2;
+                        drawSign(nodeGroup, xShift, y, sign, staff);
+                    }
                 }
                 return nodeGroup;
             }
@@ -563,6 +569,21 @@
                 return result;
             }
 
+            const invertTriad = (triad, inversion) => {
+                let result = JSON.parse(JSON.stringify(triad));
+                for (let i = inversion; i > 0; i--) {
+                    result = result.slice(1).concat([transposeOctaveUp(result[0])]);
+                }
+                return result;
+            }
+
+            const transposeOctaveUp = (note) => {
+                const octave = parseInt(note.charAt(1));
+                const newOctave = octave + 1;
+                const result = note.substring(0, 1) + newOctave + note.substring(2);
+                return result;
+            }
+
             const setQuestionText = (text) => {
                 document.getElementById("question-text").textContent = text;
             }
@@ -600,10 +621,15 @@
                 return result;
             }
 
-            const getGermanChordName = (baseNote, type) => {
+            const getGermanChordName = (baseNote, type, inversion) => {
                 const formattedBaseNoteName = getGermanNoteName(baseNote);
                 const formattedChordType = type === 'major' ? 'Dur' : 'Moll';
-                const result = [formattedBaseNoteName, formattedChordType].join('-');
+                let result = [formattedBaseNoteName, formattedChordType].join('-');
+                if (inversion > 0) {
+                    result += ' (' + inversion + ". UK)";
+                } else {
+                    result += ' (GS)';
+                }
                 return result;
             }
 
@@ -739,7 +765,15 @@
                 return result;
             }
 
-            const determinePureAndSmallIntervalls = () => {
+            const determinePureAndSmallIntervals = () => {
+                return determineIntervalsWithQualifiers(['', 'kleine']);
+            }
+
+            const determinePureAndSmallAndBigIntervals = () => {
+                return determineIntervalsWithQualifiers(['', 'kleine', 'große']);
+            }
+
+            const determineIntervalsWithQualifiers = (qualifiers) => {
                 let result = [];
                 const intervals = getPreciseIntervalNames();
                 const baseIntervalNames = Object.keys(intervals);
@@ -750,7 +784,7 @@
                     for (let i = 0; i < halfTones.length; i++) {
                         const numHalfTones = halfTones[i];
                         const qualifier = intervalDetail[numHalfTones];
-                        if (qualifier === "" || qualifier === "kleine") {
+                        if (qualifiers.indexOf(qualifier) >= 0) {
                             const qualifiedIntervalName = [qualifier, baseIntervalName].join(' ').trim();
                             const entry = {
                                 intervalName: qualifiedIntervalName,
@@ -787,10 +821,26 @@
                 return [baseNote, middle, top];
             }
 
+            const areNotesInRange = (notes, range) => {
+                return notes.map(note => isNoteInRange(note, range)).reduce((p, c) => p && c, true);
+            }
+
+            const isNoteInRange = (note, range) => {
+                const allNotes = getAllOctaveNotes();
+                const lowestIndex = allNotes.indexOf(range[0]);
+                const noteIndex = allNotes.indexOf(note);
+                const highestIndex = allNotes.indexOf(range[0]);
+                const result = noteIndex >= lowestIndex && noteIndex <= highestIndex;
+                return result;
+            }
+
             const fillWithWrongAnswers = (answers, wrongAnswers) => {
                 let result = JSON.parse(JSON.stringify(answers));
                 let j = 0;
                 for (let i = 0; i < 4; i++) {
+                    while (result.indexOf(wrongAnswers[j]) >= 0) {
+                        j++;
+                    }
                     if (result[i] === null) {
                         result[i] = wrongAnswers[j];
                         j++;
@@ -929,18 +979,25 @@
                 setClef(questionDiagram, clef, 100, staff);
                 const range = ranges[clef];
                 const randomChord = randomizeTriad(range);
-                const chord = buildTriad(randomChord.baseNote, randomChord.chordType);
+                const rawChord = buildTriad(randomChord.baseNote, randomChord.chordType);
+                let inversion = randomizeNumberBetween(0, 2);
+                let chord = invertTriad(rawChord, inversion);
+                if (!areNotesInRange(chord, range)) {
+                    chord = rawChord;
+                    inversion = 0;
+                }
                 setChord(questionDiagram, chord, '1/4', 170, staff, clef);
                 let answers = [null, null, null, null];
                 const correctAnswer = randomizeNumberBetween(0, 3);
-                const formattedCorrectAnswer = getGermanChordName(randomChord.baseNote, randomChord.chordType);
+                const formattedCorrectAnswer = getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
                 answers[correctAnswer] = formattedCorrectAnswer;
                 for (let i = 0; i < 4; i++) {
                     if (!answers[i]) {
                         let duplicate = true, formattedAnswer = null;
                         while (duplicate) {
                             const wrongChord = randomizeTriad(range);
-                            formattedAnswer = getGermanChordName(wrongChord.baseNote, wrongChord.chordType);
+                            const wrongInversion = randomizeNumberBetween(0, 2);
+                            formattedAnswer = getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
                             duplicate = answers.indexOf(formattedAnswer) != -1;
                         }
                         answers[i] = formattedAnswer;
@@ -951,7 +1008,7 @@
             }
 
             const askForIntervalHalfToneSize = () => {
-                const intervals = determinePureAndSmallIntervalls();
+                const intervals = determinePureAndSmallIntervals();
                 const solution = getRandomElementFrom(intervals);
                 setQuestionText("Wie viele Halbtonschritte hat eine " + solution.intervalName + "?");
                 let answers = [null, null, null, null];
@@ -971,9 +1028,29 @@
                 setEventListeners(correctAnswer + 1);
             }
 
+            const askForConsonanceDegreeByIntervalName = () => {
+                const intervals = [
+                    ['Vollkommene Konsonanz', ['reine Oktave', 'reine Quinte', 'reine Quarte']],
+                    ['Unvollkommene Konsonanz', ['große Sexte', 'große Terz', 'kleine Terz', 'kleine Sexte']],
+                    ['Milde Dissonanz', ['kleine Septime', 'große Sekunde']],
+                    ['Scharfe Dissonanz', ['große Septime', 'kleine Sekunde', 'Tritonus', 'übermäßige Quarte']]
+                ];
+                const consonanceGroup = getRandomElementFrom(intervals);
+                const consonanceDegree = consonanceGroup[0];
+                const intervalName = getRandomElementFrom(consonanceGroup[1]);
+                setQuestionText("Welchen Konsonanzgrad hat eine " + intervalName + "?");
+                let answers = [null, null, null, null];
+                const correctAnswer = randomizeNumberBetween(0, 3);
+                answers[correctAnswer] = consonanceDegree;
+                const allConsonanceDegrees = intervals.map(consonance => consonance[0]);
+                answers = fillWithWrongAnswers(answers, allConsonanceDegrees);
+                setAnswerTexts(answers);
+                setEventListeners(correctAnswer + 1);
+            }
+
             const askNextQuestion = () => {
                 reset();
-                const next = getRandomElementFrom([askForNoteName, askForInterval, askForChord, askForIntervalHalfToneSize, askForValue]);
+                const next = getRandomElementFrom([askForNoteName, askForInterval, askForChord, askForIntervalHalfToneSize, askForValue, askForConsonanceDegreeByIntervalName]);
                 next();
             }
 
