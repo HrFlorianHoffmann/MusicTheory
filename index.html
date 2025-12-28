@@ -768,15 +768,16 @@
 
             const getGermanNoteNameWithoutOctave = (note) => {
                 const signAdditions = { '': '', '#': 'is', 'B': 'es' };
-                const octave = parseInt(note.charAt(1));
                 const baseNote = note.charAt(0);
-                const baseName = baseNote.toUpperCase();
-                const sign = note.length > 2 ? note.charAt(2) : '';
-                const signAdditionBase = signAdditions[sign];
-                const signAddition = (baseNote === 'E' || baseNote === 'A' ) && signAdditionBase === 'es' ? 's' : signAdditionBase;
-                let name = baseName + signAddition;
-                if (name === 'Hes') {
-                    name = 'B';
+                let name = baseNote.toUpperCase();
+                for (let i = 2; i < note.length; i++) {
+                    const sign = note.charAt(i);
+                    const signAdditionBase = signAdditions[sign];
+                    const signAddition = (name === 'E' || name === 'A' ) && signAdditionBase === 'es' ? 's' : signAdditionBase;
+                    name = name + signAddition;
+                    if (name === 'Hes') {
+                        name = 'B';
+                    }
                 }
                 return name;
             }
@@ -995,6 +996,7 @@
             const wrongAnswerPressed = (event) => {
                 statistics.wrongAnswers++;
                 updateStatistics();
+                state.next.push(state.question);
                 setOpacityOfElementWithId("correct-answer-icon", 0);
                 const wrongAnswerElement = setOpacityOfElementWithId("wrong-answer-icon", 1);
                 const correctAnswer = state.correctAnswer;
@@ -1041,26 +1043,13 @@
             }
 
             const reset = () => {
+                state.question = null;
                 removeAllChildrenOfElementWithId('question-text');
                 removeAllChildrenOfElementWithId('question-diagram');
                 for (let i = 1; i <= 4; i++) {
                     removeAllChildrenOfElementWithId('answer-text-' + i);
                     removeAllChildrenOfElementWithId('answer-diagram-' + i);
                 }
-            }
-
-            const updateStatistics = () => {
-                document.getElementById("correct-stat").textContent = "Richtig: " + statistics.correctAnswers;
-                document.getElementById("wrong-stat").textContent = "Falsch: " + statistics.wrongAnswers;
-            }
-
-            let state = {
-                correctAnswer: null
-            }
-
-            let statistics = {
-                correctAnswers: 0,
-                wrongAnswers: 0
             }
 
             // --------------------------------------------------------
@@ -1118,7 +1107,7 @@
                     type: clef
                 });
                 const range = ranges[clef];
-                const note = randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
+                const note = randomizeNoteBetween(range[0], range[1], ['', '', '', '#', '#', 'B', 'B', '##', 'BB']);
                 diagram.push({
                     element:'note',
                     note: note,
@@ -1294,6 +1283,7 @@
             }
 
             const askQuestion = (question) => {
+                state.question = question;
                 setQuestionText(question.question.text);
                 if (!!question.question.diagram) {
                     const questionDiagram = document.getElementById("question-diagram");
@@ -1305,9 +1295,34 @@
 
             const askNextQuestion = () => {
                 reset();
+                while (state.next.length < 4) {
+                    const lastQuestion = randomizeQuestion();
+                    state.next.push(lastQuestion);
+                }
+                const nextQuestion = state.next[0];
+                state.next = state.next.slice(1);
+                askQuestion(nextQuestion);
+            }
+
+            const randomizeQuestion = () => {
                 const next = getRandomElementFrom([askForNoteName, askForInterval, askForChord, askForIntervalHalfToneSize, askForValue, askForConsonanceDegreeByIntervalName]);
                 const question = next();
-                askQuestion(question);
+                return question;
+            }
+
+           const updateStatistics = () => {
+                document.getElementById("correct-stat").textContent = "Richtig: " + statistics.correctAnswers;
+                document.getElementById("wrong-stat").textContent = "Falsch: " + statistics.wrongAnswers;
+            }
+
+            let state = {
+                question: null,
+                next: []
+            }
+
+            let statistics = {
+                correctAnswers: 0,
+                wrongAnswers: 0
             }
 
             askNextQuestion();
