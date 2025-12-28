@@ -1196,6 +1196,9 @@
                 let inversion = randomizeNumberBetween(0, 2);
                 let chord = invertTriad(rawChord, inversion);
                 if (!areNotesInRange(chord, range)) {
+                    chord = chord.map(note => transposeOctaves(note, -1));
+                }
+                if (!areNotesInRange(chord, range)) {
                     chord = rawChord;
                     inversion = 0;
                 }
