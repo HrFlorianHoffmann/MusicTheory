@@ -1253,7 +1253,7 @@
                     value: '1/4'
                 });
                 let answers = [null, null, null, null];
-                const correctAnswer = { text: randomizeNumberBetween(0, 3) };
+                const correctAnswer = randomizeNumberBetween(0, 3);
                 const formattedCorrectAnswer = getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
                 answers[correctAnswer] = { text: formattedCorrectAnswer };
                 answers = fillWithRandomWrongAnswers(answers, () => {
