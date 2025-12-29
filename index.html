@@ -33,21 +33,21 @@
                 <tr>
                     <td id="answer-1" class="answer" align="center">
                         <p id="answer-text-1">Answer 1</p>
-                        <svg id="answer-diagram-1" width="300" height="100"></svg>
+                        <svg id="answer-diagram-1" width="300" height="150"></svg>
                     </td>
                     <td id="answer-2" class="answer" align="center">
                         <p id="answer-text-2">Answer 2</p>
-                        <svg id="answer-diagram-2" width="300" height="100"></svg>
+                        <svg id="answer-diagram-2" width="300" height="150"></svg>
                     </td>
                 </tr>
                 <tr>
                     <td id="answer-3" class="answer"  align="center">
                         <p id="answer-text-3">Answer 3</p>
-                        <svg id="answer-diagram-3" width="300" height="100"></svg>
+                        <svg id="answer-diagram-3" width="300" height="150"></svg>
                     </td>
                     <td id="answer-4" class="answer" align="center">
                         <p id="answer-text-4">Answer 4</p>
-                        <svg id="answer-diagram-4" width="300" height="100"></svg>
+                        <svg id="answer-diagram-4" width="300" height="150"></svg>
                     </td>
                 </tr>
             </table>
@@ -876,7 +876,7 @@
                 return result;
             }
 
-            const randomizePreciseIntervalName = (a, b) => {
+            const randomizePreciseIntervalName = () => {
                 const intervalDetails = getPreciseIntervalNames();
                 const baseIntervalName = getRandomElementFrom(Object.keys(intervalDetails));
                 const baseIntervalDetails = intervalDetails[baseIntervalName];
@@ -928,11 +928,13 @@
                 const index = allNotes.indexOf(baseNote);
                 const otherIndex = index + diff;
                 let otherNote = allNotes[otherIndex];
-                while (calculateIntervalInHalfTones(note, otherNote) < halfTones) {
-                    otherNote += '#';
-                }
-                while (calculateIntervalInHalfTones(note, otherNote) > halfTones) {
-                    otherNote += 'B';
+                if (typeof halfTones === 'number') {
+                    while (calculateIntervalInHalfTones(note, otherNote) < halfTones) {
+                        otherNote += '#';
+                    }
+                    while (calculateIntervalInHalfTones(note, otherNote) > halfTones) {
+                        otherNote += 'B';
+                    }
                 }
                 return otherNote;
             }
@@ -950,11 +952,23 @@
                 document.getElementById(id).textContent = text;
             }
 
-            const setAnswerTexts = (texts) => {
-                for (let i = 0; i < texts.length; i++) {
-                    const num = i + 1, text = texts[i];
-                    const id = "answer-text-" + num;
-                    document.getElementById(id).textContent = text;
+            const isArray = (array) => {
+                return array && typeof array != 'string' && array.length && typeof array.length === 'number';
+            }
+
+            const setAnswerTexts = (answers) => {
+                for (let i = 0; i < answers.length; i++) {
+                    const num = i + 1, answer = answers[i];
+                    if (typeof answer.text === 'string') {
+                        const textId = "answer-text-" + num;
+                        const textElement = document.getElementById(textId);
+                        textElement.textContent = answer.text;
+                    }
+                    if (isArray(answer.diagram)) {
+                        const diagramId = 'answer-diagram-' + num;
+                        const diagramElement = document.getElementById(diagramId);
+                        setMusicDiagram(diagramElement, answer.diagram);
+                    }
                 }
             }
 
@@ -962,7 +976,7 @@
                 let result = JSON.parse(JSON.stringify(answers));
                 let j = 0;
                 for (let i = 0; i < answers.length; i++) {
-                    while (result.indexOf(wrongAnswers[j]) >= 0) {
+                    while (result.map(entry => JSON.stringify(entry)).indexOf(JSON.stringify(wrongAnswers[j])) >= 0) {
                         j++;
                     }
                     if (result[i] === null) {
@@ -978,7 +992,7 @@
                 for (let i = 0; i < answers.length; i++) {
                     if (result[i] === null) {
                         let wrongAnswer = null;
-                        while (wrongAnswer === null || answers.indexOf(wrongAnswer) >= 0) {
+                        while (wrongAnswer === null || answers.map(entry => JSON.stringify(entry)).indexOf(JSON.stringify(wrongAnswer)) >= 0) {
                             wrongAnswer = randomizeWrongAnswer();
                         }
                         result[i] = wrongAnswer;
@@ -1102,8 +1116,8 @@
                 }
                 let answers = [null, null, null, null];
                 const correctAnswer = randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = getFormattedValue(value);
-                answers = fillWithRandomWrongAnswers(answers, () => getFormattedValue(getRandomElementFrom(values)));
+                answers[correctAnswer] = { text: getFormattedValue(value) };
+                answers = fillWithRandomWrongAnswers(answers, () => ({ text: getFormattedValue(getRandomElementFrom(values)) }));
                 const result = {
                     question: {
                         text: "Welchen Wert hat diese " + text + "?",
@@ -1132,11 +1146,11 @@
                 });
                 let answers = [null, null, null, null];
                 const correctAnswer = randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = getGermanNoteName(note);
+                answers[correctAnswer] = { text: getGermanNoteName(note) };
                 answers = fillWithRandomWrongAnswers(answers, () => {
                     const randomAnswer = randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
                     formattedAnswer = getGermanNoteName(randomAnswer);
-                    return formattedAnswer;
+                    return { text: formattedAnswer };
                 });
                 const result = {
                     question: {
@@ -1171,8 +1185,8 @@
                 });
                 let answers = [null, null, null, null];
                 const correctAnswer = randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = interval.name;
-                answers = fillWithRandomWrongAnswers(answers, randomizePreciseIntervalName);
+                answers[correctAnswer] = { text: interval.name };
+                answers = fillWithRandomWrongAnswers(answers, () => ({ text: randomizePreciseIntervalName() }));
                 const result = {
                     question: {
                         text: "Wie heißt dieses Intervall?",
@@ -1207,8 +1221,8 @@
                 const halfTones = calculateIntervalInHalfTones(interval.note1, interval.note2);
                 let answers = [null, null, null, null];
                 const correctAnswer = randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = "" + halfTones;
-                answers = fillWithRandomWrongAnswers(answers, () => "" + randomizeNumberBetween(0, 12));
+                answers[correctAnswer] = { text: "" + halfTones };
+                answers = fillWithRandomWrongAnswers(answers, () => ({ text: "" + randomizeNumberBetween(0, 12) }));
                 const result = {
                     question: {
                         text: "Wie viele Halbtonschritte hat dieses Intervall?",
@@ -1239,14 +1253,14 @@
                     value: '1/4'
                 });
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = { text: randomizeNumberBetween(0, 3) };
                 const formattedCorrectAnswer = getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
-                answers[correctAnswer] = formattedCorrectAnswer;
+                answers[correctAnswer] = { text: formattedCorrectAnswer };
                 answers = fillWithRandomWrongAnswers(answers, () => {
                     const wrongChord = randomizeTriad(range);
                     const wrongInversion = randomizeNumberBetween(0, 2);
                     formattedAnswer = getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
-                    return formattedAnswer;
+                    return { text: formattedAnswer };
                 });
                 const result = {
                     question: {
@@ -1264,7 +1278,7 @@
                 const solution = getRandomElementFrom(intervals);
                 let answers = [null, null, null, null];
                 const correctAnswer = randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = solution.halfTones;
+                answers[correctAnswer] = { text: "" + solution.halfTones };
                 let wrongCandidates = [];
                 const from = Math.max(0, solution.halfTones - 4);
                 const to = solution.halfTones + 4;
@@ -1273,7 +1287,7 @@
                         wrongCandidates.push(i);
                     }
                 }
-                const wrongAnswers = getRandomElementsFrom(wrongCandidates, 3);
+                const wrongAnswers = getRandomElementsFrom(wrongCandidates, 3).map(entry => ({ text: "" + entry }));
                 answers = fillWithWrongAnswers(answers, wrongAnswers);
                 const result = {
                     question: {
@@ -1297,17 +1311,85 @@
                 const intervalName = getRandomElementFrom(consonanceGroup[1]);
                 let answers = intervals.map(interval => interval[0]);
                 const correctAnswer = answers.indexOf(consonanceDegree);
-                answers[correctAnswer] = consonanceDegree;
-                const allConsonanceDegrees = intervals.map(consonance => consonance[0]);
-                answers = fillWithWrongAnswers(answers, allConsonanceDegrees);
+                answers = answers.map(entry => ({ text: entry }));
                 const result = {
                     question: {
-                        text: "Wie klingt eine " + intervalName + "?"
+                        text: "Wie klingt ein/e " + intervalName + "?"
                     },
                     answers: answers,
                     correctAnswer: correctAnswer
                 };
                 return result;
+            }
+
+            const askForChordAtDegree = () => {
+                const clef = getRandomElementFrom(['treble', 'bass']);
+                const ranges = { treble: ['C4', 'C5'], bass: ['C2', 'C3']};
+                const range = ranges[clef];
+                const keyBaseNote = randomizeNoteBetween(range[0], range[1], ['']);
+                const key = keyBaseNote.charAt(0);
+                const degree = randomizeNumberBetween(1, 7);
+                const shift = degree - 1;
+                const chordBaseNote = determineNoteRelativeTo(keyBaseNote, shift);
+                const chordType = (degree === 1 || degree === 4 || degree === 5) ? 'major' : 'minor';
+                const chord = buildTriad(chordBaseNote, chordType);
+                let diagram = [{
+                    element: 'clef',
+                    type: clef
+                }, {
+                    element: 'chord',
+                    notes: chord,
+                    value: '1/4'
+                }];
+                let answers = [null, null, null, null];
+                const correctAnswer = randomizeNumberBetween(0, 3);
+                answers[correctAnswer] = { diagram: diagram };
+                let formattedDegree = convertToRomanNumber(degree);
+                formattedDegree = chordType === 'major' ? formattedDegree.toUpperCase() : formattedDegree.toLowerCase();
+                answers = fillWithRandomWrongAnswers(answers, () => {
+                    let diagram = [];
+                    diagram.push({
+                        element: 'clef',
+                        type: clef
+                    });
+                    const randomChord = randomizeTriad(range);
+                    const chord = buildTriad(randomChord.baseNote, randomChord.chordType);
+                    diagram.push({
+                        element: 'chord',
+                        notes: chord,
+                        value: '1/4'
+                    });
+                    return {
+                        diagram: diagram
+                    };
+                });
+                const result = {
+                    question: {
+                        text: 'Welcher Akkord ist die ' + formattedDegree + ' der ' + key + '-Dur-Tonleiter?'
+                    },
+                    answers: answers,
+                    correctAnswer: correctAnswer
+                };
+                return result;
+            }
+
+            const convertToRomanNumber = (number) => {
+                switch (number) {
+                    case 1:
+                        return 'I';
+                    case 2:
+                        return 'II';
+                    case 3:
+                        return 'III';
+                    case 4:
+                        return 'IV';
+                    case 5:
+                        return 'V';
+                    case 6:
+                        return 'VI';
+                    case 7:
+                        return 'VII';
+                }
             }
 
             const askQuestion = (question) => {
@@ -1340,7 +1422,8 @@
                     askForIntervalHalfToneSize,
                     askForValue, 
                     askForConsonanceDegreeByIntervalName,
-                    askForIntervalInHalfTones
+                    askForIntervalInHalfTones,
+                    askForChordAtDegree
                 ]);
                 const question = next();
                 return question;
