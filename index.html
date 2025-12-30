@@ -26,6 +26,11 @@
                         <p style="font-size: 48pt;">✅</p>
                     </td>
                 </tr>
+                <tr>
+                    <td id="explanation-section" colspan="3" width="600">
+                        <p id="explanation" style="text-align: justify; font-size: 10pt;"></p>
+                    </td>
+                </tr>
             </table>
         </div>
         <div id="answer-section" width="800" align="center">
@@ -55,10 +60,10 @@
         <div id="statistics-section" width="800" align="center">
             <table>
                 <tr>
-                    <td width="400" align="center">
+                    <td width="300" align="center">
                         <p id="correct-stat">Richtig: </p>
                     </td>
-                    <td width="400" align="center">
+                    <td width="300" align="center">
                         <p id="wrong-stat">Falsch: </p>
                     </td>
                 </tr>
@@ -101,12 +106,14 @@
                 return path;
             }
 
-            const drawRectangle = (parent, x, y, width, height, fill) => {
+            const drawRectangle = (parent, x, y, width, height, stroke, strokeWidth, fill) => {
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 rect.setAttribute('x', x);
                 rect.setAttribute('y', y);
                 rect.setAttribute('width', width);
                 rect.setAttribute('height', height);
+                rect.setAttribute('stroke', stroke);
+                rect.setAttribute('stroke-width', strokeWidth);
                 rect.setAttribute('fill', fill);
                 parent.appendChild(rect);
                 return rect;
@@ -122,6 +129,85 @@
                 circle.setAttribute('fill', fill);
                 parent.appendChild(circle);
                 return circle;
+            }
+
+            // --------------------------------------------------------
+            // Draw keyboard
+            // --------------------------------------------------------
+
+            const calculateKeyboardWidth = (fromNote, toNote, keyWidth) => {
+                const realFromNote = getNormalizedKeyboardKeyName(fromNote);
+                const realToNote = getNormalizedKeyboardKeyName(toNote);
+                let numWhiteKeys = 0;
+                let note = realFromNote, completed = false;
+                while (!completed) {
+                    const isWhiteKey = !hasSign(note);
+                    if (isWhiteKey) {
+                        numWhiteKeys++;
+                    }
+                    completed = (note === realToNote);
+                    note = getNextNormalizedKeyboardKeyName(note, 1);
+                }
+                let width = numWhiteKeys * keyWidth;
+                if (hasSign(realFromNote)) {
+                    width += (keyWidth / 2);
+                }
+                if (realFromNote != realToNote && hasSign(realToNote)) {
+                    width += (keyWidth / 2);
+                }
+                return width;
+            }
+
+            const setKeyboard = (parent, fromNote, toNote, markedNotes, centerX, centerY, maxWidth, height) => {
+                let width = Infinity, keyWidth = height;
+                while (width > maxWidth) {
+                    keyWidth = keyWidth * 0.9;
+                    width = calculateKeyboardWidth(fromNote, toNote, keyWidth);
+                }
+                const leftX = centerX - (width / 2);
+                const topY = centerY - (height / 2);
+                drawKeyboard(parent, fromNote, toNote, markedNotes, leftX, topY, keyWidth, height);
+            }
+
+            const drawKeyboardKey = (parent, centerX, topY, width, height, fill) => {
+                const x1 = centerX - (width / 2);
+                drawRectangle(parent, x1 , topY, width, height, 'black', 1, fill);
+            }
+
+            const drawKeyboard = (parent, fromNote, toNote, markedNotes, leftX, topY, keyWidth, keyHeight) => {
+                const realFromNote = getNormalizedKeyboardKeyName(fromNote);
+                const realToNote = getNormalizedKeyboardKeyName(toNote);
+                const normalizedMarkedNotes = markedNotes.map(getNormalizedKeyboardKeyName);
+                let keys = [[], []];
+                let note = realFromNote, x = leftX + (keyWidth / 2), completed = false;
+                while (!completed) {
+                    const isBlackKey = note.endsWith('#');
+                    const width = isBlackKey ? keyWidth * 0.6 : keyWidth;
+                    const height = isBlackKey ? keyHeight * 0.6 : keyHeight;
+                    let fill = isBlackKey ? 'black' : 'white';
+                    if (normalizedMarkedNotes.indexOf(note) >= 0) {
+                        fill = 'red';
+                    }
+                    const key = {
+                        x: x,
+                        width: width,
+                        height: height,
+                        fill: fill
+                    };
+                    const index = isBlackKey ? 1 : 0;
+                    keys[index].push(key);
+                    completed = (note === realToNote);
+                    const stepSize = (note.charAt(0) === 'E' || note.charAt(0) === 'H') ? keyWidth : (keyWidth / 2);
+                    x += stepSize;
+                    note = getNextNormalizedKeyboardKeyName(note, 1);
+                }
+                for (let j = 0; j < keys.length; j++) {
+                    const keyList = keys[j];
+                    for (let i = 0; i < keyList.length; i++) {
+                        const key = keyList[i];
+                        drawKeyboardKey(parent, key.x, topY, key.width, key.height, key.fill);
+                    }
+                }
             }
 
             // --------------------------------------------------------
@@ -143,7 +229,7 @@
                 const height = staff.lineDistance / 2;
                 const shiftedX = x - width / 2;
                 const y = staff.y1 + staff.lineDistance;
-                return drawRectangle(parent, shiftedX, y, width, height, fill);
+                return drawRectangle(parent, shiftedX, y, width, height, 'black', 1, fill);
             }
 
             const drawHalfPause = (parent, x, staff, fill) => {
@@ -152,7 +238,7 @@
                 const height = staff.lineDistance / 2;
                 const shiftedX = x - width / 2;
                 const y = staff.y1 + staff.lineDistance + height;
-                return drawRectangle(parent, shiftedX, y, width, height, fill);
+                return drawRectangle(parent, shiftedX, y, width, height, 'black', 1, fill);
             }
 
             const drawQuarterPause = (parent, x, staff, fill) => {
@@ -565,6 +651,10 @@
             // Musical calculations
             // --------------------------------------------------------
 
+            const hasSign = (note) => {
+                return note.length > 2;
+            }
+
             const getOctaveNotes = () => {
                 return ['C', 'D', 'E', 'F', 'G', 'A', 'H'];
             }
@@ -671,7 +761,7 @@
                 return absolute;
             }
 
-            const getAllHalftones = () => {
+            const getAllHalfTones = () => {
                 const cleanValues = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'H': 11};
                 let values = [];
                 for (let octave = 0; octave <= 8; octave++) {
@@ -689,12 +779,12 @@
             }
 
             const calculateHalfTone = (note) => {
-                const values = getAllHalftones();
+                const values = getAllHalfTones();
                 return values[note];
             }
 
             const calculateNotesFromHalfTone = (halfTone) => {
-                const values = getAllHalftones();
+                const values = getAllHalfTones();
                 const names = Object.keys(values);
                 const result = names.filter(name => values[name] === halfTone);
                 return result;
@@ -732,7 +822,7 @@
             }
 
             const isNoteInRange = (note, range) => {
-                const allNotes = getAllHalftones();
+                const allNotes = getAllHalfTones();
                 const lowestIndex = allNotes[range[0]];
                 const noteIndex = allNotes[note];
                 const highestIndex = allNotes[range[1]];
@@ -768,6 +858,25 @@
             //---------------------------------------------------------
             // Names
             //---------------------------------------------------------
+
+            const convertToRomanNumber = (number) => {
+                switch (number) {
+                    case 1:
+                        return 'I';
+                    case 2:
+                        return 'II';
+                    case 3:
+                        return 'III';
+                    case 4:
+                        return 'IV';
+                    case 5:
+                        return 'V';
+                    case 6:
+                        return 'VI';
+                    case 7:
+                        return 'VII';
+                }
+            }
 
             const getGermanNoteName = (note) => {
                 const nameWithoutOctave = getGermanNoteNameWithoutOctave(note);
@@ -940,6 +1049,37 @@
             }
 
             // --------------------------------------------------------
+            // Keyboard calculations
+            // --------------------------------------------------------
+
+            const getNormalizedKeyboardKeyName = (note) => {
+                const halfTone = calculateHalfTone(note);
+                const notes = calculateNotesFromHalfTone(halfTone);
+                const result = notes.filter(candidate => candidate.length === 2 || (candidate.length === 3 && candidate.endsWith('#'))).sort((a, b) => a.length - b.length)[0];
+                return result;
+            }
+
+            const getNextNormalizedKeyboardKeyName = (note, halfTones) => {
+                const halfTone = calculateHalfTone(note);
+                const nextHalfTone = halfTone + halfTones;
+                const notes = calculateNotesFromHalfTone(nextHalfTone);
+                const result = getNormalizedKeyboardKeyName(notes[0]);
+                return result;
+            }
+
+            const listKeyboardKeys = (from, to) => {
+                const realFrom = getNormalizedKeyboardKeyName(from);
+                const realTo = getNormalizedKeyboardKeyName(to);
+                let note = realFrom, result = [], completed = false;
+                while (!completed) {
+                    result.push(note);
+                    completed = note === realTo;
+                    note = getNextNormalizedKeyboardKeyName(note, 1);
+                }
+                return result;
+            }
+
+            // --------------------------------------------------------
             // Quiz elements
             // --------------------------------------------------------
 
@@ -969,6 +1109,11 @@
                         const diagramElement = document.getElementById(diagramId);
                         setMusicDiagram(diagramElement, answer.diagram);
                     }
+                    if (!!answer.keyboard) {
+                        const diagramId = 'answer-diagram-' + num;
+                        const diagramElement = document.getElementById(diagramId);
+                        setKeyboard(diagramElement, answer.keyboard.from, answer.keyboard.to, answer.keyboard.markedNotes, 150, 75, 300, 100);
+                    }
                 }
             }
 
@@ -992,7 +1137,7 @@
                 for (let i = 0; i < answers.length; i++) {
                     if (result[i] === null) {
                         let wrongAnswer = null;
-                        while (wrongAnswer === null || answers.map(entry => JSON.stringify(entry)).indexOf(JSON.stringify(wrongAnswer)) >= 0) {
+                        while (wrongAnswer === null || result.map(entry => JSON.stringify(entry)).indexOf(JSON.stringify(wrongAnswer)) >= 0) {
                             wrongAnswer = randomizeWrongAnswer();
                         }
                         result[i] = wrongAnswer;
@@ -1027,6 +1172,7 @@
             const correctAnswerPressed = (event) => {
                 statistics.correctAnswers++;
                 updateStatistics();
+                document.getElementById("explanation").innerHTML = "";
                 setOpacityOfElementWithId("wrong-answer-icon", 0);
                 const correctAnswerElement = setOpacityOfElementWithId("correct-answer-icon", 1);
                 fadeOut(correctAnswerElement, 750);
@@ -1036,6 +1182,10 @@
             const wrongAnswerPressed = (event) => {
                 statistics.wrongAnswers++;
                 updateStatistics();
+                if (state.question.explanation) {
+                    document.getElementById("explanation").innerHTML = state.question.explanation;
+                    console.log(state.question.explanation);
+                }
                 state.next.push(state.question);
                 setOpacityOfElementWithId("correct-answer-icon", 0);
                 const wrongAnswerElement = setOpacityOfElementWithId("wrong-answer-icon", 1);
@@ -1095,6 +1245,45 @@
             // --------------------------------------------------------
             // Questions
             // --------------------------------------------------------
+
+            const askForKeyboardKey = () => {
+                const note = randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                const keyboardKey = getNormalizedKeyboardKeyName(note);
+                const noteName = getGermanNoteNameWithoutOctave(note);
+                const fromNote = 'A3#', toNote = 'C5#';
+                const keyboardKeys = listKeyboardKeys(fromNote, toNote);
+                const markedNotes = keyboardKeys.filter(key => key === keyboardKey);
+                let answers = [null, null, null, null];
+                const correctAnswer = randomizeNumberBetween(0, 3);
+                answers[correctAnswer] = {
+                    keyboard: {
+                        from: fromNote,
+                        to: toNote,
+                        markedNotes: markedNotes
+                    }
+                };
+                answers = fillWithRandomWrongAnswers(answers, () => {
+                    const randomMarkedNote = randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                    const randomMarkedKeyboardKey = getNormalizedKeyboardKeyName(randomMarkedNote);
+                    const randomMarkedNotes = keyboardKeys.filter(key => key === randomMarkedKeyboardKey);
+                    const result = {
+                        keyboard: {
+                            from: fromNote,
+                            to: toNote,
+                            markedNotes: randomMarkedNotes
+                        }
+                    };
+                    return result;
+                });
+                const result = {
+                    question: {
+                        text: "Wo liegt die Note " + noteName + "?"
+                    },
+                    answers: answers,
+                    correctAnswer: correctAnswer
+                }
+                return result;
+            }
 
             const askForValue = () => {
                 const values = listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i).flatMap(val => val === '1/64' ? [val] : [val, val + '.']);
@@ -1193,7 +1382,8 @@
                         diagram: diagram
                     },
                     answers: answers,
-                    correctAnswer: correctAnswer
+                    correctAnswer: correctAnswer,
+                    explanation: explanation
                 };
                 return result;
             }
@@ -1234,6 +1424,12 @@
                 return result;
             }
 
+            const getMiddleNote = (chordNotes, inversion) => {
+                const middleNoteIndexes = [1, 0, 2];
+                const middleNoteIndex = middleNoteIndexes[inversion];
+                return chordNotes[middleNoteIndex];
+            }
+
             const askForChord = () => {
                 const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                 let diagram = [];
@@ -1262,13 +1458,20 @@
                     formattedAnswer = getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
                     return { text: formattedAnswer };
                 });
+                let explanation = "Die Noten sind " + chord.map(note => getGermanNoteNameWithoutOctave(note)).join(', ') + ". ";
+                explanation += "Der Akkord ist in der " + (inversion === 0 ? 'Grundstellung, denn es ist keine Lücke erkennbar' : (inversion + ". Umkehrung, erkennbar an der Lücke")) + ". ";
+                explanation += "In dieser Stellung ist der Grundton " + (inversion === 0 ? 'die unterste Note' : 'die Note oberhalb der Lücke') + ", also " + getGermanNoteNameWithoutOctave(randomChord.baseNote) + ". ";
+                explanation += "In der Grundstellung wären die Noten des Akkords " + rawChord.map(note => getGermanNoteNameWithoutOctave(note)).join(', ') + ".<br/><br/>";
+                explanation += "Zwischen dem Grundton " + getGermanNoteNameWithoutOctave(rawChord[0]) + " und dem in der Grundstellung darüber liegenden Ton " + getGermanNoteNameWithoutOctave(rawChord[1]) + " liegen " + calculateIntervalInHalfTones(rawChord[0], rawChord[1]) + " Halbtonschritte, also eine " + calculateIntervalName(rawChord[0], rawChord[1]) + ". ";
+                explanation += "Dieses Intervall erzeugt einen " + (randomChord.chordType === 'major' ? 'Dur' : 'Moll' ) + "-Akkord.";
                 const result = {
                     question: {
                         text: "Wie heißt dieser Akkord?",
                         diagram: diagram
                     },
                     answers: answers,
-                    correctAnswer: correctAnswer
+                    correctAnswer: correctAnswer,
+                    explanation: explanation
                 };
                 return result;
             }
@@ -1289,12 +1492,41 @@
                 }
                 const wrongAnswers = getRandomElementsFrom(wrongCandidates, 3).map(entry => ({ text: "" + entry }));
                 answers = fillWithWrongAnswers(answers, wrongAnswers);
+                let explanation = "";
+                const baseIntervalName = solution.baseIntervalName;
+                switch(baseIntervalName) {
+                    case "Prime":
+                    case "Oktave":
+                        explanation += "Die " + baseIntervalName + " ist ein prinzipiell reines Grundintervall mit " + (baseIntervalName === 'Prime' ? 0 : 12) + " Halbtonschritten. ";
+                        break;
+                    case "Quarte":
+                    case "Quinte":
+                        explanation += "Die " + baseIntervalName + " ist ein prinzipiell reines Intervall, das 1 Halbtonschritt " + (baseIntervalName === 'Quarte' ? 'kleiner' : 'größer') + " als der 6 Halbtonschritte umfassende Tritonus ist, also " + (baseIntervalName === 'Quarte' ? 5 : 7) + " Halbtonschritte hat. ";
+                        break;
+                    case "Sekunde":
+                    case "Septime":
+                        explanation += "Die " + baseIntervalName + " ist das nächst " + (baseIntervalName === 'Sekunde' ? 'größere' : 'kleinere') + " Intervall neben der " + (baseIntervalName === 'Sekunde' ? 'Prime' : 'Oktave') + ", die " + (baseIntervalName === 'Sekunde' ? '0' : '12') + " Halbtonschritte umfasst. ";
+                        explanation += "Die " + baseIntervalName + " hat eine kleine und eine große Form, wobei die kleine " + (baseIntervalName === 'Sekunde' ? '1' : '10') + " und die große " + + (baseIntervalName === 'Sekunde' ? '2' : '11') + " Halbtonschritte umfasst. ";
+                        break;
+                    case "Terz":
+                    case "Sexte":
+                        explanation += "Die " + baseIntervalName + " ist das nächst " + (baseIntervalName === 'Terz' ? 'kleinere' : 'größere') + " Intervall neben der " + (baseIntervalName === 'Terz' ? 'Quarte' : 'Quinte') + ", die als reines Intervall neben dem 6 Halbtonschritte umfassenden Tritonus " + (baseIntervalName === 'Terz' ? '5' : '7') + " Halbtonschritte umfasst. ";
+                        explanation += "Die " + baseIntervalName + " hat eine kleine und eine große Form, wobei die kleine " + (baseIntervalName === 'Terz' ? '3' : '8') + " und die große " + + (baseIntervalName === 'Terz' ? '4' : '9') + " Halbtonschritte umfasst. ";
+                        break;
+                }
+                if (solution.qualifier === "verminderte") {
+                    explanation += "Die Verminderung verkleinert dieses Intervall um 1 weiteren Halbtonschritt auf insgesamt " + solution.halfTones + " Halbtonschritte.";
+                }
+                if (solution.qualifier === "übermäßige") {
+                    explanation += "Die übermäßige Form dieses Intervalls hat 1 weiteren Halbtonschritt mehr, also " + solution.halfTones + " Halbtonschritte.";
+                }
                 const result = {
                     question: {
                         text: "Wie viele Halbtonschritte hat eine " + solution.intervalName + "?"
                     },
                     answers: answers,
-                    correctAnswer: correctAnswer
+                    correctAnswer: correctAnswer,
+                    explanation: explanation
                 };
                 return result;
             }
@@ -1365,31 +1597,12 @@
                 });
                 const result = {
                     question: {
-                        text: 'Welcher Akkord ist die ' + formattedDegree + ' der ' + key + '-Dur-Tonleiter?'
+                        text: 'Welcher Akkord ist die ' + formattedDegree + '. Stufe der ' + key + '-Dur-Tonleiter?'
                     },
                     answers: answers,
                     correctAnswer: correctAnswer
                 };
                 return result;
-            }
-
-            const convertToRomanNumber = (number) => {
-                switch (number) {
-                    case 1:
-                        return 'I';
-                    case 2:
-                        return 'II';
-                    case 3:
-                        return 'III';
-                    case 4:
-                        return 'IV';
-                    case 5:
-                        return 'V';
-                    case 6:
-                        return 'VI';
-                    case 7:
-                        return 'VII';
-                }
             }
 
             const askQuestion = (question) => {
@@ -1416,8 +1629,9 @@
 
             const randomizeQuestion = () => {
                 const next = getRandomElementFrom([
+                    askForKeyboardKey,
                     askForNoteName, 
-                    askForInterval, 
+                    askForInterval,
                     askForChord, 
                     askForIntervalHalfToneSize,
                     askForValue, 
