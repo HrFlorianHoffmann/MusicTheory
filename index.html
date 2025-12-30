@@ -5,6 +5,16 @@
                 font-family: Helvetica;
                 font-size: 18pt;
             }
+            .measure {
+                font-family: Helvetica;
+                font-size: 28px;
+            }
+            .textElement {
+                font-family: Helvetica;
+                font-size: 42px;
+                stroke: red;
+                fill: red;
+            }
             table {
                 border-spacing: 15px;
             }
@@ -131,6 +141,16 @@
                 return circle;
             }
 
+            const drawText = (parent, text, x, y, className) => {
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textElement.textContent = text;
+                textElement.setAttribute('x', x - (text.length * 5));
+                textElement.setAttribute('y', y);
+                textElement.setAttribute('class', className);
+                parent.appendChild(textElement);
+                return textElement;
+            }
+
             // --------------------------------------------------------
             // Draw keyboard
             // --------------------------------------------------------
@@ -222,6 +242,16 @@
                 }
             }
 
+            const drawMeasure = (parent, measure, x, staff) => {
+                const parts = measure.split('/');
+                drawText(parent, parts[0], x, staff.y1 + staff.lineDistance * 2, 'measure');
+                drawText(parent, parts[1], x, staff.y1 + staff.lineDistance * 4, 'measure');
+            }
+
+            const drawBar = (parent, x, staff) => {
+                const strokeWidth = staff.lineDistance / 5;
+                drawLine(parent, x, staff.y1, x, staff.y1 + staff.lineDistance * 4, 'black', strokeWidth);
+            }
 
             const drawWholePause = (parent, x, staff, fill) => {
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -530,8 +560,11 @@
             }
 
             const setMusicDiagram = (parent, content) => {
-                const elementWidth = 50;
-                const width = content.length * elementWidth;
+                let elementWidth = 50, width = Infinity;
+                while (width > 300) {
+                    elementWidth *= 0.9;
+                    width = content.length * elementWidth;
+                }
                 const x1 = (300 - width ) / 2;
                 const staff = { x1: x1, y1: 50, width: width, lineDistance: 10 };
                 drawStaff(parent, staff, 'gray');
@@ -553,6 +586,15 @@
                             break;
                         case "pause":
                             setPause(parent, element.value, x, staff);
+                            break;
+                        case "measure":
+                            drawMeasure(parent, element.measure, x, staff);
+                            break;
+                        case 'bar':
+                            drawBar(parent, x, staff);
+                            break;
+                        case 'text':
+                            drawText(parent, element.text, x, staff.y1 + staff.lineDistance * 3.5, 'textElement');
                             break;
                     }
                 }
@@ -1425,6 +1467,60 @@
                 return result;
             }
 
+            const determineComplementaryInterval = (interval) => {
+                const complementaryIntervals = {
+                    'Prime': 'Oktave',
+                    'Sekunde': 'Septime',
+                    'Terz': 'Sexte',
+                    'Quarte': 'Quinte',
+                    'Tritonus': 'Tritonus',
+                    'Quinte': 'Quarte',
+                    'Sexte': 'Terz',
+                    'Septime': 'Sekunde',
+                    'Oktave': 'Prime'
+                };
+                const complementaryQualifiers = {
+                    'übermäßige': 'verminderte',
+                    'kleine': 'große',
+                    'reine': 'reine',
+                    'große': 'kleine',
+                    'verminderte': 'übermäßige'
+                };
+                const complementaryBaseInterval = complementaryIntervals[interval.baseIntervalName];
+                const complementaryQualifier = complementaryQualifiers[interval.qualifier];
+                const complementaryInterval = [complementaryQualifier, complementaryBaseInterval].join(' ').trim();
+                const complementaryHalfTones = 12 - interval.halfTones;
+                const result = {
+                    intervalName: complementaryInterval,
+                    baseIntervalName: complementaryBaseInterval,
+                    qualifier: complementaryQualifier,
+                    halfTones: complementaryHalfTones
+                };
+                return result;
+            }
+
+            const askForComplementaryInterval = () => {
+                const intervals = determineIntervals();
+                const interval = getRandomElementFrom(intervals);
+                const complementaryInterval = determineComplementaryInterval(interval);
+                let answers = [null, null, null, null];
+                const correctAnswer = randomizeNumberBetween(0, 3);
+                answers[correctAnswer] = { text: complementaryInterval.intervalName };
+                answers = fillWithRandomWrongAnswers(answers, () => ({ text: getRandomElementFrom(intervals).intervalName }));
+                let explanation = "Das prinzipielle Komplementär zur " + interval.baseIntervalName + " ist die " + complementaryInterval.baseIntervalName + ". ";
+                explanation += "Da das Original-Intervall eine " + interval.qualifier + " Größe hat, hat das Komplementär die gegenteilige Größe, also eine " + complementaryInterval.qualifier + ". ";
+                explanation += "Die " + interval.intervalName + " umfasst " + interval.halfTones + " Halbtonschritte, sein Komplementär " + complementaryInterval.intervalName + " " + complementaryInterval.halfTones + " Halbtonschritte - in Summe immer 12.";
+                const result = {
+                    question: {
+                        text: "Welches ist das Komplementärintervall zur " + interval.intervalName + "?"
+                    },
+                    answers: answers,
+                    correctAnswer: correctAnswer,
+                    explanation
+                }
+                return result;
+            }
+
             const askForIntervalInHalfTones = () => {
                 const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                 let diagram = [];
@@ -1651,6 +1747,112 @@
                 return result;
             }
 
+            const askToCompleteMeasure = () => {
+                const measures = ['4/4', '3/4', '2/4', '6/8', '5/4'];
+                const values = ['1/2', '1/2.', '1/4', '1/4.', '1/8', '1/8.', '1/16'];
+                const range = ['C4', 'A5'];
+                const signs = [''];
+                const measure = getRandomElementFrom(measures);
+                const clef = {
+                    element: 'clef',
+                    type: 'treble'
+                };
+                let diagram = [clef, {
+                    element: 'measure',
+                    measure: measure
+                }];
+                const melody = randomizeMelody(measure, range[0], range[1], signs, values);
+                const redactedIndex = randomizeNumberBetween(0, melody.length - 1);
+                const redactedElement = melody[redactedIndex];
+                const placeholder = {
+                    element: 'text',
+                    text: '?'
+                };
+                const redactedMelody = melody.slice(0, redactedIndex).concat([placeholder]).concat(melody.slice(redactedIndex));
+                diagram = diagram.concat(redactedMelody);
+                diagram = diagram.concat([{ element: 'bar' }]);
+                let answers = [null, null, null, null];
+                const correctAnswer = randomizeNumberBetween(0, 3);
+                answers[correctAnswer] = { text: '', diagram: [redactedElement] };
+                answers = fillWithRandomWrongAnswers(answers, () => {
+                    const value = getRandomElementFrom(values);
+                    const type = getRandomElementFrom(['note', 'pause']);
+                    const note = type === 'note' ? randomizeNoteBetween(range[0], range[1], signs) : undefined;
+                    const element = {
+                        element: type,
+                        value: value,
+                        note: note
+                    }
+                    const result = {
+                        text: '',
+                        diagram: [element]
+                    }
+                    return result;
+                });
+                let explanation = "Die Melodie enthält die folgenden Elemente: ";
+                explanation += redactedMelody.filter(element => element.element != 'text').map(element => element.value + "-" + (element.element === 'note' ? 'Note' : 'Pause')).join(", ") + ".";
+                explanation += "Es fehlt also ein Element mit dem Wert " + redactedElement.value + ".";
+                const result = {
+                    question: {
+                        text: 'Welcher Ton oder welche Pause komplettiert diesen Takt?',
+                        diagram: diagram
+                    },
+                    answers: answers,
+                    correctAnswer: correctAnswer,
+                    explanation: explanation
+                };
+                return result;
+            }
+
+            const randomizeMelody = (measure, fromNote, toNote, signs, values) => {
+                let randomValues = [], remainder = countSixtyFourthsInMeasure(measure);
+                while (remainder > 0) {
+                    const possibleValues = values.filter(value => countSixtyFourthsInValue(value) <= remainder);
+                    const next = getRandomElementFrom(possibleValues);
+                    const length = countSixtyFourthsInValue(next);
+                    randomValues.push(next);
+                    remainder -= length;
+                }
+                let result = [];
+                for (let i = 0; i < randomValues.length; i++) {
+                    const value = randomValues[i];
+                    const type = getRandomElementFrom(['note', 'pause']);
+                    const note = type === 'note' ? randomizeNoteBetween(fromNote, toNote, signs) : undefined;
+                    const element = {
+                        element: type,
+                        value: value,
+                        note: note
+                    }
+                    result.push(element);
+                }
+                return result;
+            }
+
+            const countSixtyFourthsInMeasure = (measure) => {
+                const parts = measure.split('/');
+                const realDenominator = parseInt(parts[1]);
+                let denominator = realDenominator, numerator = parseInt(parts[0]);
+                while (denominator < 64) {
+                    numerator *= 2;
+                    denominator *= 2;
+                }
+                return numerator;
+            }
+            
+            const countSixtyFourthsInValue = (value) => {
+                const realDenominator = parseInt(value.split('/')[1]);
+                let denominator = realDenominator, numerator = 1;
+                while (denominator < 64) {
+                    numerator *= 2;
+                    denominator *= 2;
+                }
+                const dotted = value.endsWith('.');
+                if (dotted) {
+                    numerator *= 1.5;
+                }
+                return numerator;
+            }
+
             const askQuestion = (question) => {
                 state.question = question;
                 setQuestionText(question.question.text);
@@ -1683,7 +1885,9 @@
                     askForValue, 
                     askForConsonanceDegreeByIntervalName,
                     askForIntervalInHalfTones,
-                    askForChordAtDegree
+                    askForChordAtDegree,
+                    askForComplementaryInterval
+                    // askToCompleteMeasure
                 ]);
                 const question = next();
                 return question;
