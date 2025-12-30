@@ -1075,14 +1075,34 @@
             }
 
             const listKeyboardKeys = (from, to) => {
-                const realFrom = getNormalizedKeyboardKeyName(from);
-                const realTo = getNormalizedKeyboardKeyName(to);
+                const realFrom = getNormalizedKeyboardKeyName(getMinNote(from, to));
+                const realTo = getNormalizedKeyboardKeyName(getMaxNote(from, to));
                 let note = realFrom, result = [], completed = false;
                 while (!completed) {
                     result.push(note);
                     completed = note === realTo;
                     note = getNextNormalizedKeyboardKeyName(note, 1);
                 }
+                return result;
+            }
+
+            const getMiddleNote = (chordNotes, inversion) => {
+                const middleNoteIndexes = [1, 0, 2];
+                const middleNoteIndex = middleNoteIndexes[inversion];
+                return chordNotes[middleNoteIndex];
+            }
+
+            const getMinNote = (a, b) => {
+                const valA = calculateHalfTone(a);
+                const valB = calculateHalfTone(b);
+                const result = valA <= valB ? a : b;
+                return result;
+            }
+
+            const getMaxNote = (a, b) => {
+                const valA = calculateHalfTone(a);
+                const valB = calculateHalfTone(b);
+                const result = valA >= valB ? a : b;
                 return result;
             }
 
@@ -1191,7 +1211,6 @@
                 updateStatistics();
                 if (state.question.explanation) {
                     document.getElementById("explanation").innerHTML = state.question.explanation;
-                    console.log(state.question.explanation);
                 }
                 state.next.push(state.question);
                 setOpacityOfElementWithId("correct-answer-icon", 0);
@@ -1401,8 +1420,7 @@
                         diagram: diagram
                     },
                     answers: answers,
-                    correctAnswer: correctAnswer,
-                    explanation: explanation
+                    correctAnswer: correctAnswer
                 };
                 return result;
             }
@@ -1432,21 +1450,24 @@
                 const correctAnswer = randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { text: "" + halfTones };
                 answers = fillWithRandomWrongAnswers(answers, () => ({ text: "" + randomizeNumberBetween(0, 12) }));
+                const keyboardKeys = listKeyboardKeys(interval.note1, interval.note2);
+                const namedKeyboardNotes = keyboardKeys.map(note => getGermanNoteName(note));
+                const nameNote = (note) => {
+                    const namedNote = getGermanNoteName(note), normalizedNote = getGermanNoteName(getNormalizedKeyboardKeyName(note));
+                    return namedNote === normalizedNote ? namedNote : namedNote + " ≙ " + normalizedNote;
+                }
+                let explanation = "Die Noten sind " + nameNote(interval.note1) + " und " + nameNote(interval.note2) + ". ";
+                explanation += "Das Intervall besteht also insgesamt aus den Noten " + namedKeyboardNotes.map((note, i) => i + ". " + note).join(", ") +", was " + halfTones + " Halbtonschritt(e) ergibt.";
                 const result = {
                     question: {
                         text: "Wie viele Halbtonschritte hat dieses Intervall?",
                         diagram: diagram
                     },
                     answers: answers,
-                    correctAnswer: correctAnswer
+                    correctAnswer: correctAnswer,
+                    explanation
                 };
                 return result;
-            }
-
-            const getMiddleNote = (chordNotes, inversion) => {
-                const middleNoteIndexes = [1, 0, 2];
-                const middleNoteIndex = middleNoteIndexes[inversion];
-                return chordNotes[middleNoteIndex];
             }
 
             const askForChord = () => {
