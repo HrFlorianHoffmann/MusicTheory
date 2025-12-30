@@ -1048,6 +1048,13 @@
                 return otherNote;
             }
 
+            const listNotesInKey = (key) => {
+                const notes = getOctaveNotes();
+                const index = notes.indexOf(key);
+                const result = notes.slice(index).concat(notes.slice(0, index));
+                return result;
+            }
+
             // --------------------------------------------------------
             // Keyboard calculations
             // --------------------------------------------------------
@@ -1341,13 +1348,25 @@
                     formattedAnswer = getGermanNoteName(randomAnswer);
                     return { text: formattedAnswer };
                 });
+                const octaveNames = { 2: 'großen', 3: 'kleinen', 4: 'eingestrichenen', 5: 'zweigestrichenen', 6: 'dreigestrichenen' };
+                const octaveQualifiers = { 2: 'groß', 3: 'klein', 4: "mit einem '", 5: "mit zwei '", 6: "mit drei '" };
+                let explanation = "Der Grundton ist ein " + note.charAt(0) + ". ";
+                if (note.length > 2) {
+                    explanation += "Mit einem Vorzeichen " + note.charAt(2).toLowerCase() + " wird aus dem Grundton ein " + getGermanNoteNameWithoutOctave(note.substring(0, 3)) + ". ";
+                }
+                if (note.length > 3) {
+                    explanation += "Mit einem weiteren Vorzeichen " + note.charAt(3).toLowerCase() + " wird daraus ein " + getGermanNoteNameWithoutOctave(note) + ". ";
+                }
+                explanation += "Die Stellung relativ zum Notenschlüssel ergibt, dass die Note in der " + octaveNames[note.charAt(1)] + " Oktave liegt; ";
+                explanation += "die Note wird deshalb " + octaveQualifiers[note.charAt(1)] + " geschrieben.";
                 const result = {
                     question: {
                         text: "Wie heißt diese Note?",
                         diagram: diagram
                     },
                     answers: answers,
-                    correctAnswer: correctAnswer
+                    correctAnswer: correctAnswer,
+                    explanation: explanation
                 };
                 return result;
             }
@@ -1576,8 +1595,8 @@
                 let answers = [null, null, null, null];
                 const correctAnswer = randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { diagram: diagram };
-                let formattedDegree = convertToRomanNumber(degree);
-                formattedDegree = chordType === 'major' ? formattedDegree.toUpperCase() : formattedDegree.toLowerCase();
+                const romanizedDegree = convertToRomanNumber(degree);
+                const formattedDegree = chordType === 'major' ? romanizedDegree.toUpperCase() : romanizedDegree.toLowerCase();
                 answers = fillWithRandomWrongAnswers(answers, () => {
                     let diagram = [];
                     diagram.push({
@@ -1595,12 +1614,18 @@
                         diagram: diagram
                     };
                 });
+                let explanation = "Die Tonleiter über dem " + key + " umfasst die Töne " + listNotesInKey(key).map((note, i) => (i+1) + "=" + note).join(", ") + ". ";
+                explanation += "Die " + romanizedDegree + ". = " + degree + ". Stufe darin ist also die Note " + chordBaseNote.charAt(0) + ". ";
+                explanation += "Der Basis-Dreiklang über dieser Note umfasst die Töne " + chord.map(note => note.charAt(0)).join("-") + ". ";
+                explanation += "Die Groß-/Kleinschreibung der Stufe " + formattedDegree + " zeigt an, dass ein " + (chordType === 'major' ? "Dur" : "Moll") + "-Akkord gesucht ist, das Intervall zwischen dem Grundton und dem mittleren Ton des Akkords muss also eine "  + (chordType === 'major' ? "große" : "kleine") + " Terz sein. ";
+                explanation += "Passt man die Vorzeichen des Basis-Dreiklangs so an, dass sich dieses Intervall ergibt, erhält man die Töne " + chord.map(note => getGermanNoteNameWithoutOctave(note)).join("-") + ".";
                 const result = {
                     question: {
                         text: 'Welcher Akkord ist die ' + formattedDegree + '. Stufe der ' + key + '-Dur-Tonleiter?'
                     },
                     answers: answers,
-                    correctAnswer: correctAnswer
+                    correctAnswer: correctAnswer,
+                    explanation
                 };
                 return result;
             }
