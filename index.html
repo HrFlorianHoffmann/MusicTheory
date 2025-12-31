@@ -993,6 +993,38 @@
                     return result;
                 }
 
+                static determineComplementaryInterval(interval) {
+                    const complementaryIntervals = {
+                        'Prime': 'Oktave',
+                        'Sekunde': 'Septime',
+                        'Terz': 'Sexte',
+                        'Quarte': 'Quinte',
+                        'Tritonus': 'Tritonus',
+                        'Quinte': 'Quarte',
+                        'Sexte': 'Terz',
+                        'Septime': 'Sekunde',
+                        'Oktave': 'Prime'
+                    };
+                    const complementaryQualifiers = {
+                        'übermäßige': 'verminderte',
+                        'kleine': 'große',
+                        'reine': 'reine',
+                        'große': 'kleine',
+                        'verminderte': 'übermäßige'
+                    };
+                    const complementaryBaseInterval = complementaryIntervals[interval.baseIntervalName];
+                    const complementaryQualifier = complementaryQualifiers[interval.qualifier];
+                    const complementaryInterval = [complementaryQualifier, complementaryBaseInterval].join(' ').trim();
+                    const complementaryHalfTones = 12 - interval.halfTones;
+                    const result = {
+                        intervalName: complementaryInterval,
+                        baseIntervalName: complementaryBaseInterval,
+                        qualifier: complementaryQualifier,
+                        halfTones: complementaryHalfTones
+                    };
+                    return result;
+                }
+
             }
 
             //---------------------------------------------------------
@@ -1454,518 +1486,490 @@
             // Questions
             // --------------------------------------------------------
 
-            const askForKeyboardKey = () => {
-                const note = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
-                const keyboardKey = getNormalizedKeyboardKeyName(note);
-                const noteName = Namer.getGermanNoteNameWithoutOctave(note);
-                const fromNote = 'A3#', toNote = 'C5#';
-                const keyboardKeys = listKeyboardKeys(fromNote, toNote);
-                const markedNotes = keyboardKeys.filter(key => key === keyboardKey);
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = {
-                    keyboard: {
-                        from: fromNote,
-                        to: toNote,
-                        markedNotes: markedNotes
-                    }
-                };
-                answers = fillWithRandomWrongAnswers(answers, () => {
-                    const randomMarkedNote = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
-                    const randomMarkedKeyboardKey = getNormalizedKeyboardKeyName(randomMarkedNote);
-                    const randomMarkedNotes = keyboardKeys.filter(key => key === randomMarkedKeyboardKey);
-                    const result = {
+            class Questions {
+                    
+                static askForKeyboardKey() {
+                    const note = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                    const keyboardKey = getNormalizedKeyboardKeyName(note);
+                    const noteName = Namer.getGermanNoteNameWithoutOctave(note);
+                    const fromNote = 'A3#', toNote = 'C5#';
+                    const keyboardKeys = listKeyboardKeys(fromNote, toNote);
+                    const markedNotes = keyboardKeys.filter(key => key === keyboardKey);
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = {
                         keyboard: {
                             from: fromNote,
                             to: toNote,
-                            markedNotes: randomMarkedNotes
+                            markedNotes: markedNotes
                         }
                     };
-                    return result;
-                });
-                const result = {
-                    question: {
-                        text: "Wo liegt die Note " + noteName + "?"
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer
-                }
-                return result;
-            }
-
-            const askForValue = () => {
-                const values = MusicCalculator.listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i).flatMap(val => val === '1/64' ? [val] : [val, val + '.']);
-                const type = Randomizer.getRandomElementFrom(['note', 'pause']);
-                const text = type === 'note' ? 'Note' : 'Pause';
-                let diagram = [];
-                const value = Randomizer.getRandomElementFrom(values);
-                if (type === 'note') {
-                    diagram.push({
-                        element: 'note',
-                        note: 'H4',
-                        value: value
+                    answers = fillWithRandomWrongAnswers(answers, () => {
+                        const randomMarkedNote = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                        const randomMarkedKeyboardKey = getNormalizedKeyboardKeyName(randomMarkedNote);
+                        const randomMarkedNotes = keyboardKeys.filter(key => key === randomMarkedKeyboardKey);
+                        const result = {
+                            keyboard: {
+                                from: fromNote,
+                                to: toNote,
+                                markedNotes: randomMarkedNotes
+                            }
+                        };
+                        return result;
                     });
-                } else {
-                    diagram.push({
-                        element: 'pause',
-                        value: value
-                    });
-                }
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: MusicCalculator.getFormattedValue(value) };
-                answers = fillWithRandomWrongAnswers(answers, () => ({ text: MusicCalculator.getFormattedValue(Randomizer.getRandomElementFrom(values)) }));
-                const result = {
-                    question: {
-                        text: "Welchen Wert hat diese " + text + "?",
-                        diagram: diagram
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer
-                };
-                return result;
-            }
-
-            const askForNoteName = () => {
-                const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
-                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
-                let diagram = [];
-                diagram.push({
-                    element: 'clef',
-                    type: clef
-                });
-                const range = ranges[clef];
-                const note = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '', '', '#', '#', 'B', 'B', '##', 'BB']);
-                diagram.push({
-                    element:'note',
-                    note: note,
-                    value: '1/4'
-                });
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: Namer.getGermanNoteName(note) };
-                answers = fillWithRandomWrongAnswers(answers, () => {
-                    const randomAnswer = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
-                    formattedAnswer = Namer.getGermanNoteName(randomAnswer);
-                    return { text: formattedAnswer };
-                });
-                const octaveNames = { 2: 'großen', 3: 'kleinen', 4: 'eingestrichenen', 5: 'zweigestrichenen', 6: 'dreigestrichenen' };
-                const octaveQualifiers = { 2: 'groß', 3: 'klein', 4: "mit einem '", 5: "mit zwei '", 6: "mit drei '" };
-                let explanation = "Der Grundton ist ein " + note.charAt(0) + ". ";
-                if (note.length > 2) {
-                    explanation += "Mit einem Vorzeichen " + note.charAt(2).toLowerCase() + " wird aus dem Grundton ein " + Namer.getGermanNoteNameWithoutOctave(note.substring(0, 3)) + ". ";
-                }
-                if (note.length > 3) {
-                    explanation += "Mit einem weiteren Vorzeichen " + note.charAt(3).toLowerCase() + " wird daraus ein " + Namer.getGermanNoteNameWithoutOctave(note) + ". ";
-                }
-                explanation += "Die Stellung relativ zum Notenschlüssel ergibt, dass die Note in der " + octaveNames[note.charAt(1)] + " Oktave liegt; ";
-                explanation += "die Note wird deshalb " + octaveQualifiers[note.charAt(1)] + " geschrieben.";
-                const result = {
-                    question: {
-                        text: "Wie heißt diese Note?",
-                        diagram: diagram
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer,
-                    explanation: explanation
-                };
-                return result;
-            }
-
-            const askForInterval = () => {
-                const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
-                let diagram = [];
-                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
-                diagram.push({
-                    element: 'clef',
-                    type: clef
-                });
-                const range = ranges[clef];
-                const interval = MusicRandomizer.randomizeInterval(range);
-                diagram.push({
-                    element: 'note',
-                    note: interval.note1,
-                    value: '1/4'
-                });
-                diagram.push({
-                    element: 'note',
-                    note: interval.note2,
-                    value: '1/4'
-                });
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: interval.name };
-                answers = fillWithRandomWrongAnswers(answers, () => ({ text: Namer.randomizePreciseIntervalName() }));
-                const result = {
-                    question: {
-                        text: "Wie heißt dieses Intervall?",
-                        diagram: diagram
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer
-                };
-                return result;
-            }
-
-            const determineComplementaryInterval = (interval) => {
-                const complementaryIntervals = {
-                    'Prime': 'Oktave',
-                    'Sekunde': 'Septime',
-                    'Terz': 'Sexte',
-                    'Quarte': 'Quinte',
-                    'Tritonus': 'Tritonus',
-                    'Quinte': 'Quarte',
-                    'Sexte': 'Terz',
-                    'Septime': 'Sekunde',
-                    'Oktave': 'Prime'
-                };
-                const complementaryQualifiers = {
-                    'übermäßige': 'verminderte',
-                    'kleine': 'große',
-                    'reine': 'reine',
-                    'große': 'kleine',
-                    'verminderte': 'übermäßige'
-                };
-                const complementaryBaseInterval = complementaryIntervals[interval.baseIntervalName];
-                const complementaryQualifier = complementaryQualifiers[interval.qualifier];
-                const complementaryInterval = [complementaryQualifier, complementaryBaseInterval].join(' ').trim();
-                const complementaryHalfTones = 12 - interval.halfTones;
-                const result = {
-                    intervalName: complementaryInterval,
-                    baseIntervalName: complementaryBaseInterval,
-                    qualifier: complementaryQualifier,
-                    halfTones: complementaryHalfTones
-                };
-                return result;
-            }
-
-            const askForComplementaryInterval = () => {
-                const intervals = Namer.determineIntervals();
-                const interval = Randomizer.getRandomElementFrom(intervals);
-                const complementaryInterval = determineComplementaryInterval(interval);
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: complementaryInterval.intervalName };
-                answers = fillWithRandomWrongAnswers(answers, () => ({ text: Randomizer.getRandomElementFrom(intervals).intervalName }));
-                let explanation = "Das prinzipielle Komplementär zur " + interval.baseIntervalName + " ist die " + complementaryInterval.baseIntervalName + ". ";
-                explanation += "Da das Original-Intervall eine " + interval.qualifier + " Größe hat, hat das Komplementär die gegenteilige Größe, also eine " + complementaryInterval.qualifier + ". ";
-                explanation += "Die " + interval.intervalName + " umfasst " + interval.halfTones + " Halbtonschritte, sein Komplementär " + complementaryInterval.intervalName + " " + complementaryInterval.halfTones + " Halbtonschritte - in Summe immer 12.";
-                const result = {
-                    question: {
-                        text: "Welches ist das Komplementärintervall zur " + interval.intervalName + "?"
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer,
-                    explanation
-                }
-                return result;
-            }
-
-            const askForIntervalInHalfTones = () => {
-                const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
-                let diagram = [];
-                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
-                diagram.push({
-                    element: 'clef',
-                    type: clef
-                });
-                const range = ranges[clef];
-                const interval = MusicRandomizer.randomizeInterval(range);
-                diagram.push({
-                    element: 'note',
-                    note: interval.note1,
-                    value: '1/4'
-                });
-                diagram.push({
-                    element: 'note',
-                    note: interval.note2,
-                    value: '1/4'
-                });
-                const halfTones = MusicCalculator.calculateIntervalInHalfTones(interval.note1, interval.note2);
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: "" + halfTones };
-                answers = fillWithRandomWrongAnswers(answers, () => ({ text: "" + Randomizer.randomizeNumberBetween(0, 12) }));
-                const keyboardKeys = listKeyboardKeys(interval.note1, interval.note2);
-                const namedKeyboardNotes = keyboardKeys.map(note => Namer.getGermanNoteName(note));
-                const nameNote = (note) => {
-                    const namedNote = Namer.getGermanNoteName(note), normalizedNote = Namer.getGermanNoteName(getNormalizedKeyboardKeyName(note));
-                    return namedNote === normalizedNote ? namedNote : namedNote + " ≙ " + normalizedNote;
-                }
-                let explanation = "Die Noten sind " + nameNote(interval.note1) + " und " + nameNote(interval.note2) + ". ";
-                explanation += "Das Intervall besteht also insgesamt aus den Noten " + namedKeyboardNotes.map((note, i) => i + ". " + note).join(", ") +", was " + halfTones + " Halbtonschritt(e) ergibt.";
-                const result = {
-                    question: {
-                        text: "Wie viele Halbtonschritte hat dieses Intervall?",
-                        diagram: diagram
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer,
-                    explanation
-                };
-                return result;
-            }
-
-            const askForChord = () => {
-                const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
-                let diagram = [];
-                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
-                diagram.push({
-                    element: 'clef',
-                    type: clef
-                });
-                const range = ranges[clef];
-                const randomChord = MusicRandomizer.randomizeTriad(range);
-                const rawChord = MusicCalculator.buildTriad(randomChord.baseNote, randomChord.chordType);
-                const inversion = Randomizer.getRandomElementFrom([0, 1, 2]);
-                const chord = MusicCalculator.invertChordWithinRange(rawChord, range, inversion);
-                diagram.push({
-                    element: 'chord',
-                    notes: chord,
-                    value: '1/4'
-                });
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                const formattedCorrectAnswer = Namer.getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
-                answers[correctAnswer] = { text: formattedCorrectAnswer };
-                answers = fillWithRandomWrongAnswers(answers, () => {
-                    const wrongChord = MusicRandomizer.randomizeTriad(range);
-                    const wrongInversion = Randomizer.randomizeNumberBetween(0, 2);
-                    formattedAnswer = Namer.getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
-                    return { text: formattedAnswer };
-                });
-                let explanation = "Die Noten sind " + chord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join(', ') + ". ";
-                explanation += "Der Akkord ist in der " + (inversion === 0 ? 'Grundstellung, denn es ist keine Lücke erkennbar' : (inversion + ". Umkehrung, erkennbar an der Lücke")) + ". ";
-                explanation += "In dieser Stellung ist der Grundton " + (inversion === 0 ? 'die unterste Note' : 'die Note oberhalb der Lücke') + ", also " + Namer.getGermanNoteNameWithoutOctave(randomChord.baseNote) + ". ";
-                explanation += "In der Grundstellung wären die Noten des Akkords " + rawChord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join(', ') + ".<br/><br/>";
-                explanation += "Zwischen dem Grundton " + Namer.getGermanNoteNameWithoutOctave(rawChord[0]) + " und dem in der Grundstellung darüber liegenden Ton " + Namer.getGermanNoteNameWithoutOctave(rawChord[1]) + " liegen " + MusicCalculator.calculateIntervalInHalfTones(rawChord[0], rawChord[1]) + " Halbtonschritte, also eine " + Namer.calculateIntervalName(rawChord[0], rawChord[1]) + ". ";
-                explanation += "Dieses Intervall erzeugt einen " + (randomChord.chordType === 'major' ? 'Dur' : 'Moll' ) + "-Akkord.";
-                const result = {
-                    question: {
-                        text: "Wie heißt dieser Akkord?",
-                        diagram: diagram
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer,
-                    explanation: explanation
-                };
-                return result;
-            }
-
-            const askForIntervalHalfToneSize = () => {
-                const intervals = Namer.determineIntervals();
-                const solution = Randomizer.getRandomElementFrom(intervals);
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: "" + solution.halfTones };
-                let wrongCandidates = [];
-                const from = Math.max(0, solution.halfTones - 4);
-                const to = solution.halfTones + 4;
-                for (let i = from; i <= to; i++) {
-                    if (i != solution.halfTones) {
-                        wrongCandidates.push(i);
+                    const result = {
+                        question: {
+                            text: "Wo liegt die Note " + noteName + "?"
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer
                     }
+                    return result;
                 }
-                const wrongAnswers = Randomizer.getRandomElementsFrom(wrongCandidates, 3).map(entry => ({ text: "" + entry }));
-                answers = fillWithWrongAnswers(answers, wrongAnswers);
-                let explanation = "";
-                const baseIntervalName = solution.baseIntervalName;
-                switch(baseIntervalName) {
-                    case "Prime":
-                    case "Oktave":
-                        explanation += "Die " + baseIntervalName + " ist ein prinzipiell reines Grundintervall mit " + (baseIntervalName === 'Prime' ? 0 : 12) + " Halbtonschritten. ";
-                        break;
-                    case "Quarte":
-                    case "Quinte":
-                        explanation += "Die " + baseIntervalName + " ist ein prinzipiell reines Intervall, das 1 Halbtonschritt " + (baseIntervalName === 'Quarte' ? 'kleiner' : 'größer') + " als der 6 Halbtonschritte umfassende Tritonus ist, also " + (baseIntervalName === 'Quarte' ? 5 : 7) + " Halbtonschritte hat. ";
-                        break;
-                    case "Sekunde":
-                    case "Septime":
-                        explanation += "Die " + baseIntervalName + " ist das nächst " + (baseIntervalName === 'Sekunde' ? 'größere' : 'kleinere') + " Intervall neben der " + (baseIntervalName === 'Sekunde' ? 'Prime' : 'Oktave') + ", die " + (baseIntervalName === 'Sekunde' ? '0' : '12') + " Halbtonschritte umfasst. ";
-                        explanation += "Die " + baseIntervalName + " hat eine kleine und eine große Form, wobei die kleine " + (baseIntervalName === 'Sekunde' ? '1' : '10') + " und die große " + + (baseIntervalName === 'Sekunde' ? '2' : '11') + " Halbtonschritte umfasst. ";
-                        break;
-                    case "Terz":
-                    case "Sexte":
-                        explanation += "Die " + baseIntervalName + " ist das nächst " + (baseIntervalName === 'Terz' ? 'kleinere' : 'größere') + " Intervall neben der " + (baseIntervalName === 'Terz' ? 'Quarte' : 'Quinte') + ", die als reines Intervall neben dem 6 Halbtonschritte umfassenden Tritonus " + (baseIntervalName === 'Terz' ? '5' : '7') + " Halbtonschritte umfasst. ";
-                        explanation += "Die " + baseIntervalName + " hat eine kleine und eine große Form, wobei die kleine " + (baseIntervalName === 'Terz' ? '3' : '8') + " und die große " + + (baseIntervalName === 'Terz' ? '4' : '9') + " Halbtonschritte umfasst. ";
-                        break;
-                }
-                if (solution.qualifier === "verminderte") {
-                    explanation += "Die Verminderung verkleinert dieses Intervall um 1 weiteren Halbtonschritt auf insgesamt " + solution.halfTones + " Halbtonschritte.";
-                }
-                if (solution.qualifier === "übermäßige") {
-                    explanation += "Die übermäßige Form dieses Intervalls hat 1 weiteren Halbtonschritt mehr, also " + solution.halfTones + " Halbtonschritte.";
-                }
-                const result = {
-                    question: {
-                        text: "Wie viele Halbtonschritte hat eine " + solution.intervalName + "?"
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer,
-                    explanation: explanation
-                };
-                return result;
-            }
 
-            const askForConsonanceDegreeByIntervalName = () => {
-                const intervals = [
-                    ['Vollkommen konsonant', ['reine Oktave', 'reine Quinte', 'reine Quarte']],
-                    ['Unvollkommen konsonant', ['große Sexte', 'große Terz', 'kleine Terz', 'kleine Sexte']],
-                    ['Mild dissonant', ['kleine Septime', 'große Sekunde']],
-                    ['Scharf dissonant', ['große Septime', 'kleine Sekunde', 'Tritonus', 'übermäßige Quarte']]
-                ];
-                const consonanceGroup = Randomizer.getRandomElementFrom(intervals);
-                const consonanceDegree = consonanceGroup[0];
-                const intervalName = Randomizer.getRandomElementFrom(consonanceGroup[1]);
-                let answers = intervals.map(interval => interval[0]);
-                const correctAnswer = answers.indexOf(consonanceDegree);
-                answers = answers.map(entry => ({ text: entry }));
-                const result = {
-                    question: {
-                        text: "Wie klingt ein/e " + intervalName + "?"
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer
-                };
-                return result;
-            }
+                static askForValue() {
+                    const values = MusicCalculator.listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i).flatMap(val => val === '1/64' ? [val] : [val, val + '.']);
+                    const type = Randomizer.getRandomElementFrom(['note', 'pause']);
+                    const text = type === 'note' ? 'Note' : 'Pause';
+                    let diagram = [];
+                    const value = Randomizer.getRandomElementFrom(values);
+                    if (type === 'note') {
+                        diagram.push({
+                            element: 'note',
+                            note: 'H4',
+                            value: value
+                        });
+                    } else {
+                        diagram.push({
+                            element: 'pause',
+                            value: value
+                        });
+                    }
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = { text: MusicCalculator.getFormattedValue(value) };
+                    answers = fillWithRandomWrongAnswers(answers, () => ({ text: MusicCalculator.getFormattedValue(Randomizer.getRandomElementFrom(values)) }));
+                    const result = {
+                        question: {
+                            text: "Welchen Wert hat diese " + text + "?",
+                            diagram: diagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer
+                    };
+                    return result;
+                }
 
-            const askForChordAtDegree = () => {
-                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
-                const ranges = { treble: ['C4', 'C5'], bass: ['C2', 'C3']};
-                const range = ranges[clef];
-                const keyBaseNote = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['']);
-                const key = keyBaseNote.charAt(0);
-                const degree = Randomizer.randomizeNumberBetween(1, 7);
-                const shift = degree - 1;
-                const chordBaseNote = MusicCalculator.determineNoteRelativeTo(keyBaseNote, shift);
-                const chordType = (degree === 1 || degree === 4 || degree === 5) ? 'major' : 'minor';
-                const chord = MusicCalculator.buildTriad(chordBaseNote, chordType);
-                let diagram = [{
-                    element: 'clef',
-                    type: clef
-                }, {
-                    element: 'chord',
-                    notes: chord,
-                    value: '1/4'
-                }];
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { diagram: diagram };
-                const romanizedDegree = Namer.convertToRomanNumber(degree);
-                const formattedDegree = chordType === 'major' ? romanizedDegree.toUpperCase() : romanizedDegree.toLowerCase();
-                answers = fillWithRandomWrongAnswers(answers, () => {
+                static askForNoteName() {
+                    const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
+                    const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
                     let diagram = [];
                     diagram.push({
                         element: 'clef',
                         type: clef
                     });
+                    const range = ranges[clef];
+                    const note = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                    diagram.push({
+                        element:'note',
+                        note: note,
+                        value: '1/4'
+                    });
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = { text: Namer.getGermanNoteName(note) };
+                    answers = fillWithRandomWrongAnswers(answers, () => {
+                        const randomAnswer = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
+                        const formattedAnswer = Namer.getGermanNoteName(randomAnswer);
+                        return { text: formattedAnswer };
+                    });
+                    const octaveNames = { 2: 'großen', 3: 'kleinen', 4: 'eingestrichenen', 5: 'zweigestrichenen', 6: 'dreigestrichenen' };
+                    const octaveQualifiers = { 2: 'groß', 3: 'klein', 4: "mit einem '", 5: "mit zwei '", 6: "mit drei '" };
+                    let explanation = "Der Grundton ist ein " + note.charAt(0) + ". ";
+                    if (note.length > 2) {
+                        explanation += "Mit einem Vorzeichen " + note.charAt(2).toLowerCase() + " wird aus dem Grundton ein " + Namer.getGermanNoteNameWithoutOctave(note.substring(0, 3)) + ". ";
+                    }
+                    if (note.length > 3) {
+                        explanation += "Mit einem weiteren Vorzeichen " + note.charAt(3).toLowerCase() + " wird daraus ein " + Namer.getGermanNoteNameWithoutOctave(note) + ". ";
+                    }
+                    explanation += "Die Stellung relativ zum Notenschlüssel ergibt, dass die Note in der " + octaveNames[note.charAt(1)] + " Oktave liegt; ";
+                    explanation += "die Note wird deshalb " + octaveQualifiers[note.charAt(1)] + " geschrieben.";
+                    const result = {
+                        question: {
+                            text: "Wie heißt diese Note?",
+                            diagram: diagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation: explanation
+                    };
+                    return result;
+                }
+
+                static askForInterval() {
+                    const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
+                    let diagram = [];
+                    const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
+                    diagram.push({
+                        element: 'clef',
+                        type: clef
+                    });
+                    const range = ranges[clef];
+                    const interval = MusicRandomizer.randomizeInterval(range);
+                    diagram.push({
+                        element: 'note',
+                        note: interval.note1,
+                        value: '1/4'
+                    });
+                    diagram.push({
+                        element: 'note',
+                        note: interval.note2,
+                        value: '1/4'
+                    });
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = { text: interval.name };
+                    answers = fillWithRandomWrongAnswers(answers, () => ({ text: Namer.randomizePreciseIntervalName() }));
+                    const result = {
+                        question: {
+                            text: "Wie heißt dieses Intervall?",
+                            diagram: diagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer
+                    };
+                    return result;
+                }
+
+                static askForComplementaryInterval() {
+                    const intervals = Namer.determineIntervals();
+                    const interval = Randomizer.getRandomElementFrom(intervals);
+                    const complementaryInterval = MusicCalculator.determineComplementaryInterval(interval);
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = { text: complementaryInterval.intervalName };
+                    answers = fillWithRandomWrongAnswers(answers, () => ({ text: Randomizer.getRandomElementFrom(intervals).intervalName }));
+                    let explanation = "Das prinzipielle Komplementär zur " + interval.baseIntervalName + " ist die " + complementaryInterval.baseIntervalName + ". ";
+                    explanation += "Da das Original-Intervall eine " + interval.qualifier + " Größe hat, hat das Komplementär die gegenteilige Größe, also eine " + complementaryInterval.qualifier + ". ";
+                    explanation += "Die " + interval.intervalName + " umfasst " + interval.halfTones + " Halbtonschritte, sein Komplementär " + complementaryInterval.intervalName + " " + complementaryInterval.halfTones + " Halbtonschritte - in Summe immer 12.";
+                    const result = {
+                        question: {
+                            text: "Welches ist das Komplementärintervall zur " + interval.intervalName + "?"
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation
+                    }
+                    return result;
+                }
+
+                static askForIntervalInHalfTones() {
+                    const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
+                    let diagram = [];
+                    const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
+                    diagram.push({
+                        element: 'clef',
+                        type: clef
+                    });
+                    const range = ranges[clef];
+                    const interval = MusicRandomizer.randomizeInterval(range);
+                    diagram.push({
+                        element: 'note',
+                        note: interval.note1,
+                        value: '1/4'
+                    });
+                    diagram.push({
+                        element: 'note',
+                        note: interval.note2,
+                        value: '1/4'
+                    });
+                    const halfTones = MusicCalculator.calculateIntervalInHalfTones(interval.note1, interval.note2);
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = { text: "" + halfTones };
+                    answers = fillWithRandomWrongAnswers(answers, () => ({ text: "" + Randomizer.randomizeNumberBetween(0, 12) }));
+                    const keyboardKeys = listKeyboardKeys(interval.note1, interval.note2);
+                    const namedKeyboardNotes = keyboardKeys.map(note => Namer.getGermanNoteName(note));
+                    const nameNote = (note) => {
+                        const namedNote = Namer.getGermanNoteName(note), normalizedNote = Namer.getGermanNoteName(getNormalizedKeyboardKeyName(note));
+                        return namedNote === normalizedNote ? namedNote : namedNote + " ≙ " + normalizedNote;
+                    }
+                    let explanation = "Die Noten sind " + nameNote(interval.note1) + " und " + nameNote(interval.note2) + ". ";
+                    explanation += "Das Intervall besteht also insgesamt aus den Noten " + namedKeyboardNotes.map((note, i) => i + ". " + note).join(", ") +", was " + halfTones + " Halbtonschritt(e) ergibt.";
+                    const result = {
+                        question: {
+                            text: "Wie viele Halbtonschritte hat dieses Intervall?",
+                            diagram: diagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation
+                    };
+                    return result;
+                }
+
+                static askForChord() {
+                    const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
+                    let diagram = [];
+                    const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
+                    diagram.push({
+                        element: 'clef',
+                        type: clef
+                    });
+                    const range = ranges[clef];
                     const randomChord = MusicRandomizer.randomizeTriad(range);
-                    const chord = MusicCalculator.buildTriad(randomChord.baseNote, randomChord.chordType);
+                    const rawChord = MusicCalculator.buildTriad(randomChord.baseNote, randomChord.chordType);
+                    const inversion = Randomizer.getRandomElementFrom([0, 1, 2]);
+                    const chord = MusicCalculator.invertChordWithinRange(rawChord, range, inversion);
                     diagram.push({
                         element: 'chord',
                         notes: chord,
                         value: '1/4'
                     });
-                    return {
-                        diagram: diagram
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    const formattedCorrectAnswer = Namer.getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
+                    answers[correctAnswer] = { text: formattedCorrectAnswer };
+                    answers = fillWithRandomWrongAnswers(answers, () => {
+                        const wrongChord = MusicRandomizer.randomizeTriad(range);
+                        const wrongInversion = Randomizer.randomizeNumberBetween(0, 2);
+                        const formattedAnswer = Namer.getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
+                        return { text: formattedAnswer };
+                    });
+                    let explanation = "Die Noten sind " + chord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join(', ') + ". ";
+                    explanation += "Der Akkord ist in der " + (inversion === 0 ? 'Grundstellung, denn es ist keine Lücke erkennbar' : (inversion + ". Umkehrung, erkennbar an der Lücke")) + ". ";
+                    explanation += "In dieser Stellung ist der Grundton " + (inversion === 0 ? 'die unterste Note' : 'die Note oberhalb der Lücke') + ", also " + Namer.getGermanNoteNameWithoutOctave(randomChord.baseNote) + ". ";
+                    explanation += "In der Grundstellung wären die Noten des Akkords " + rawChord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join(', ') + ".<br/><br/>";
+                    explanation += "Zwischen dem Grundton " + Namer.getGermanNoteNameWithoutOctave(rawChord[0]) + " und dem in der Grundstellung darüber liegenden Ton " + Namer.getGermanNoteNameWithoutOctave(rawChord[1]) + " liegen " + MusicCalculator.calculateIntervalInHalfTones(rawChord[0], rawChord[1]) + " Halbtonschritte, also eine " + Namer.calculateIntervalName(rawChord[0], rawChord[1]) + ". ";
+                    explanation += "Dieses Intervall erzeugt einen " + (randomChord.chordType === 'major' ? 'Dur' : 'Moll' ) + "-Akkord.";
+                    const result = {
+                        question: {
+                            text: "Wie heißt dieser Akkord?",
+                            diagram: diagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation: explanation
                     };
-                });
-                let explanation = "Die Tonleiter über dem " + key + " umfasst die Töne " + Namer.listNotesInKey(key).map((note, i) => (i+1) + "=" + note).join(", ") + ". ";
-                explanation += "Die " + romanizedDegree + ". = " + degree + ". Stufe darin ist also die Note " + chordBaseNote.charAt(0) + ". ";
-                explanation += "Der Basis-Dreiklang über dieser Note umfasst die Töne " + chord.map(note => note.charAt(0)).join("-") + ". ";
-                explanation += "Die Groß-/Kleinschreibung der Stufe " + formattedDegree + " zeigt an, dass ein " + (chordType === 'major' ? "Dur" : "Moll") + "-Akkord gesucht ist, das Intervall zwischen dem Grundton und dem mittleren Ton des Akkords muss also eine "  + (chordType === 'major' ? "große" : "kleine") + " Terz sein. ";
-                explanation += "Passt man die Vorzeichen des Basis-Dreiklangs so an, dass sich dieses Intervall ergibt, erhält man die Töne " + chord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join("-") + ".";
-                const result = {
-                    question: {
-                        text: 'Welcher Akkord ist die ' + formattedDegree + '. Stufe der ' + key + '-Dur-Tonleiter?'
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer,
-                    explanation
-                };
-                return result;
-            }
-
-            const askToCompleteMeasure = () => {
-                const measures = ['4/4', '3/4', '2/4', '6/8', '5/4'];
-                const values = ['1/2', '1/2.', '1/4', '1/4.', '1/8', '1/8.', '1/16'];
-                const range = ['C4', 'A5'];
-                const signs = [''];
-                const measure = Randomizer.getRandomElementFrom(measures);
-                const clef = {
-                    element: 'clef',
-                    type: 'treble'
-                };
-                let diagram = [clef, {
-                    element: 'measure',
-                    measure: measure
-                }];
-                const melody = MusicRandomizer.randomizeMelody(measure, range[0], range[1], signs, values);
-                const redactedIndex = Randomizer.randomizeNumberBetween(0, melody.length - 1);
-                const redactedElement = melody[redactedIndex];
-                const placeholder = {
-                    element: 'text',
-                    text: '?'
-                };
-                const redactedMelody = melody.slice(0, redactedIndex).concat([placeholder]).concat(melody.slice(redactedIndex + 1));
-                diagram = diagram.concat(redactedMelody);
-                diagram = diagram.concat([{ element: 'bar' }]);
-                let answers = [null, null, null, null];
-                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: '', diagram: [redactedElement] };
-                const reduceToValue = (entry) => {
-                    return !!entry ? entry.diagram[0].value : null;
+                    return result;
                 }
-                answers = fillWithRandomWrongAnswers(answers, () => {
-                    const value = Randomizer.getRandomElementFrom(values);
-                    const type = Randomizer.getRandomElementFrom(['note', 'pause']);
-                    const note = type === 'note' ? MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs) : undefined;
-                    const element = {
-                        element: type,
-                        value: value,
-                        note: note
+
+                static askForIntervalHalfToneSize() {
+                    const intervals = Namer.determineIntervals();
+                    const solution = Randomizer.getRandomElementFrom(intervals);
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = { text: "" + solution.halfTones };
+                    let wrongCandidates = [];
+                    const from = Math.max(0, solution.halfTones - 4);
+                    const to = solution.halfTones + 4;
+                    for (let i = from; i <= to; i++) {
+                        if (i != solution.halfTones) {
+                            wrongCandidates.push(i);
+                        }
+                    }
+                    const wrongAnswers = Randomizer.getRandomElementsFrom(wrongCandidates, 3).map(entry => ({ text: "" + entry }));
+                    answers = fillWithWrongAnswers(answers, wrongAnswers);
+                    let explanation = "";
+                    const baseIntervalName = solution.baseIntervalName;
+                    switch(baseIntervalName) {
+                        case "Prime":
+                        case "Oktave":
+                            explanation += "Die " + baseIntervalName + " ist ein prinzipiell reines Grundintervall mit " + (baseIntervalName === 'Prime' ? 0 : 12) + " Halbtonschritten. ";
+                            break;
+                        case "Quarte":
+                        case "Quinte":
+                            explanation += "Die " + baseIntervalName + " ist ein prinzipiell reines Intervall, das 1 Halbtonschritt " + (baseIntervalName === 'Quarte' ? 'kleiner' : 'größer') + " als der 6 Halbtonschritte umfassende Tritonus ist, also " + (baseIntervalName === 'Quarte' ? 5 : 7) + " Halbtonschritte hat. ";
+                            break;
+                        case "Sekunde":
+                        case "Septime":
+                            explanation += "Die " + baseIntervalName + " ist das nächst " + (baseIntervalName === 'Sekunde' ? 'größere' : 'kleinere') + " Intervall neben der " + (baseIntervalName === 'Sekunde' ? 'Prime' : 'Oktave') + ", die " + (baseIntervalName === 'Sekunde' ? '0' : '12') + " Halbtonschritte umfasst. ";
+                            explanation += "Die " + baseIntervalName + " hat eine kleine und eine große Form, wobei die kleine " + (baseIntervalName === 'Sekunde' ? '1' : '10') + " und die große " + + (baseIntervalName === 'Sekunde' ? '2' : '11') + " Halbtonschritte umfasst. ";
+                            break;
+                        case "Terz":
+                        case "Sexte":
+                            explanation += "Die " + baseIntervalName + " ist das nächst " + (baseIntervalName === 'Terz' ? 'kleinere' : 'größere') + " Intervall neben der " + (baseIntervalName === 'Terz' ? 'Quarte' : 'Quinte') + ", die als reines Intervall neben dem 6 Halbtonschritte umfassenden Tritonus " + (baseIntervalName === 'Terz' ? '5' : '7') + " Halbtonschritte umfasst. ";
+                            explanation += "Die " + baseIntervalName + " hat eine kleine und eine große Form, wobei die kleine " + (baseIntervalName === 'Terz' ? '3' : '8') + " und die große " + + (baseIntervalName === 'Terz' ? '4' : '9') + " Halbtonschritte umfasst. ";
+                            break;
+                    }
+                    if (solution.qualifier === "verminderte") {
+                        explanation += "Die Verminderung verkleinert dieses Intervall um 1 weiteren Halbtonschritt auf insgesamt " + solution.halfTones + " Halbtonschritte.";
+                    }
+                    if (solution.qualifier === "übermäßige") {
+                        explanation += "Die übermäßige Form dieses Intervalls hat 1 weiteren Halbtonschritt mehr, also " + solution.halfTones + " Halbtonschritte.";
                     }
                     const result = {
-                        text: '',
-                        diagram: [element]
-                    } 
-                    return result;
-                }, reduceToValue);
-                const redactedMelodyElements = redactedMelody.filter(element => !!element.value);
-                const fractionalValues = redactedMelodyElements.map(element => MusicCalculator.getFractionalValue(element.value));
-                const commonDenominator = FractionCalculator.calculateSmallestCommonDenominator(fractionalValues);
-                const describeElements = (elements) => {
-                    const result = elements.map(element => {
-                        const formattedValue = element.value + "-" + (element.element === 'note' ? 'Note' : 'Pause');
-                        const fractionalValue = MusicCalculator.getFractionalValue(element.value);
-                        const normalizedValue = FractionCalculator.adjustToDenominator(fractionalValue, commonDenominator);
-                        const description = formattedValue + " = " + normalizedValue;
-                        return description;
-                    }).join(", ");
+                        question: {
+                            text: "Wie viele Halbtonschritte hat eine " + solution.intervalName + "?"
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation: explanation
+                    };
                     return result;
                 }
-                let explanation = "Der kleinste vorkommende Wert ist 1/" + commonDenominator + ". ";
-                explanation += "Die Melodie enthält die Elemente ";
-                explanation += describeElements(redactedMelodyElements) + ". ";
-                const total = FractionCalculator.addFractions(redactedMelodyElements.map(element => element.value).map(value => MusicCalculator.getFractionalValue(value)));
-                if (redactedMelodyElements.length > 1) {
-                    explanation += "In Summe " + total + ". ";
+
+                static askForConsonanceDegreeByIntervalName() {
+                    const intervals = [
+                        ['Vollkommen konsonant', ['reine Oktave', 'reine Quinte', 'reine Quarte']],
+                        ['Unvollkommen konsonant', ['große Sexte', 'große Terz', 'kleine Terz', 'kleine Sexte']],
+                        ['Mild dissonant', ['kleine Septime', 'große Sekunde']],
+                        ['Scharf dissonant', ['große Septime', 'kleine Sekunde', 'Tritonus', 'übermäßige Quarte']]
+                    ];
+                    const consonanceGroup = Randomizer.getRandomElementFrom(intervals);
+                    const consonanceDegree = consonanceGroup[0];
+                    const intervalName = Randomizer.getRandomElementFrom(consonanceGroup[1]);
+                    let answers = intervals.map(interval => interval[0]);
+                    const correctAnswer = answers.indexOf(consonanceDegree);
+                    answers = answers.map(entry => ({ text: entry }));
+                    const result = {
+                        question: {
+                            text: "Wie klingt ein/e " + intervalName + "?"
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer
+                    };
+                    return result;
                 }
-                const measureValue = FractionCalculator.adjustToDenominator(measure, commonDenominator);
-                explanation += "Der Takt hat den Wert " + (measure != measureValue ? measure + " = " : "") + measureValue + ". ";
-                const missing = FractionCalculator.subtractFractions([measure, total]);
-                explanation += "Es fehlt also ein Element mit dem Wert " + measureValue + " - " + total + " = " + missing + (redactedElement.value != missing ? " = " + redactedElement.value : "") + ".";
-                const result = {
-                    question: {
-                        text: 'Welcher Ton oder welche Pause komplettiert diesen Takt?',
-                        diagram: diagram
-                    },
-                    answers: answers,
-                    correctAnswer: correctAnswer,
-                    explanation: explanation
-                };
-                return result;
+
+                static askForChordAtDegree() {
+                    const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
+                    const ranges = { treble: ['C4', 'C5'], bass: ['C2', 'C3']};
+                    const range = ranges[clef];
+                    const keyBaseNote = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['']);
+                    const key = keyBaseNote.charAt(0);
+                    const degree = Randomizer.randomizeNumberBetween(1, 7);
+                    const shift = degree - 1;
+                    const chordBaseNote = MusicCalculator.determineNoteRelativeTo(keyBaseNote, shift);
+                    const chordType = (degree === 1 || degree === 4 || degree === 5) ? 'major' : 'minor';
+                    const chord = MusicCalculator.buildTriad(chordBaseNote, chordType);
+                    let diagram = [{
+                        element: 'clef',
+                        type: clef
+                    }, {
+                        element: 'chord',
+                        notes: chord,
+                        value: '1/4'
+                    }];
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = { diagram: diagram };
+                    const romanizedDegree = Namer.convertToRomanNumber(degree);
+                    const formattedDegree = chordType === 'major' ? romanizedDegree.toUpperCase() : romanizedDegree.toLowerCase();
+                    answers = fillWithRandomWrongAnswers(answers, () => {
+                        let diagram = [];
+                        diagram.push({
+                            element: 'clef',
+                            type: clef
+                        });
+                        const randomChord = MusicRandomizer.randomizeTriad(range);
+                        const chord = MusicCalculator.buildTriad(randomChord.baseNote, randomChord.chordType);
+                        diagram.push({
+                            element: 'chord',
+                            notes: chord,
+                            value: '1/4'
+                        });
+                        return {
+                            diagram: diagram
+                        };
+                    });
+                    let explanation = "Die Tonleiter über dem " + key + " umfasst die Töne " + Namer.listNotesInKey(key).map((note, i) => (i+1) + "=" + note).join(", ") + ". ";
+                    explanation += "Die " + romanizedDegree + ". = " + degree + ". Stufe darin ist also die Note " + chordBaseNote.charAt(0) + ". ";
+                    explanation += "Der Basis-Dreiklang über dieser Note umfasst die Töne " + chord.map(note => note.charAt(0)).join("-") + ". ";
+                    explanation += "Die Groß-/Kleinschreibung der Stufe " + formattedDegree + " zeigt an, dass ein " + (chordType === 'major' ? "Dur" : "Moll") + "-Akkord gesucht ist, das Intervall zwischen dem Grundton und dem mittleren Ton des Akkords muss also eine "  + (chordType === 'major' ? "große" : "kleine") + " Terz sein. ";
+                    explanation += "Passt man die Vorzeichen des Basis-Dreiklangs so an, dass sich dieses Intervall ergibt, erhält man die Töne " + chord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join("-") + ".";
+                    const result = {
+                        question: {
+                            text: 'Welcher Akkord ist die ' + formattedDegree + '. Stufe der ' + key + '-Dur-Tonleiter?'
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation
+                    };
+                    return result;
+                }
+
+                static askToCompleteMeasure() {
+                    const measures = ['4/4', '3/4', '2/4', '6/8', '5/4'];
+                    const values = ['1/2', '1/2.', '1/4', '1/4.', '1/8', '1/8.', '1/16'];
+                    const range = ['C4', 'A5'];
+                    const signs = [''];
+                    const measure = Randomizer.getRandomElementFrom(measures);
+                    const clef = {
+                        element: 'clef',
+                        type: 'treble'
+                    };
+                    let diagram = [clef, {
+                        element: 'measure',
+                        measure: measure
+                    }];
+                    const melody = MusicRandomizer.randomizeMelody(measure, range[0], range[1], signs, values);
+                    const redactedIndex = Randomizer.randomizeNumberBetween(0, melody.length - 1);
+                    const redactedElement = melody[redactedIndex];
+                    const placeholder = {
+                        element: 'text',
+                        text: '?'
+                    };
+                    const redactedMelody = melody.slice(0, redactedIndex).concat([placeholder]).concat(melody.slice(redactedIndex + 1));
+                    diagram = diagram.concat(redactedMelody);
+                    diagram = diagram.concat([{ element: 'bar' }]);
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = { text: '', diagram: [redactedElement] };
+                    const reduceToValue = (entry) => {
+                        return !!entry ? entry.diagram[0].value : null;
+                    }
+                    answers = fillWithRandomWrongAnswers(answers, () => {
+                        const value = Randomizer.getRandomElementFrom(values);
+                        const type = Randomizer.getRandomElementFrom(['note', 'pause']);
+                        const note = type === 'note' ? MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs) : undefined;
+                        const element = {
+                            element: type,
+                            value: value,
+                            note: note
+                        }
+                        const result = {
+                            text: '',
+                            diagram: [element]
+                        } 
+                        return result;
+                    }, reduceToValue);
+                    const redactedMelodyElements = redactedMelody.filter(element => !!element.value);
+                    const fractionalValues = redactedMelodyElements.map(element => MusicCalculator.getFractionalValue(element.value));
+                    const commonDenominator = FractionCalculator.calculateSmallestCommonDenominator(fractionalValues);
+                    const describeElements = (elements) => {
+                        const result = elements.map(element => {
+                            const formattedValue = element.value + "-" + (element.element === 'note' ? 'Note' : 'Pause');
+                            const fractionalValue = MusicCalculator.getFractionalValue(element.value);
+                            const normalizedValue = FractionCalculator.adjustToDenominator(fractionalValue, commonDenominator);
+                            const description = formattedValue + " = " + normalizedValue;
+                            return description;
+                        }).join(", ");
+                        return result;
+                    }
+                    let explanation = "Der kleinste vorkommende Wert ist 1/" + commonDenominator + ". ";
+                    explanation += "Die Melodie enthält die Elemente ";
+                    explanation += describeElements(redactedMelodyElements) + ". ";
+                    const total = FractionCalculator.addFractions(redactedMelodyElements.map(element => element.value).map(value => MusicCalculator.getFractionalValue(value)));
+                    if (redactedMelodyElements.length > 1) {
+                        explanation += "In Summe " + total + ". ";
+                    }
+                    const measureValue = FractionCalculator.adjustToDenominator(measure, commonDenominator);
+                    explanation += "Der Takt hat den Wert " + (measure != measureValue ? measure + " = " : "") + measureValue + ". ";
+                    const missing = FractionCalculator.subtractFractions([measure, total]);
+                    explanation += "Es fehlt also ein Element mit dem Wert " + measureValue + " - " + total + " = " + missing + (redactedElement.value != missing ? " = " + redactedElement.value : "") + ".";
+                    const result = {
+                        question: {
+                            text: 'Welcher Ton oder welche Pause komplettiert diesen Takt?',
+                            diagram: diagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation: explanation
+                    };
+                    return result;
+                }
+
             }
 
             const countSixtyFourthsInMeasure = (measure) => {
@@ -2017,17 +2021,17 @@
 
             const randomizeQuestion = () => {
                 const next = Randomizer.getRandomElementFrom([
-                    askForKeyboardKey,
-                    askForNoteName, 
-                    askForInterval,
-                    askForChord, 
-                    askForIntervalHalfToneSize,
-                    askForValue, 
-                    askForConsonanceDegreeByIntervalName,
-                    askForIntervalInHalfTones,
-                    askForChordAtDegree,
-                    askForComplementaryInterval,
-                    askToCompleteMeasure
+                    Questions.askForKeyboardKey,
+                    Questions.askForNoteName, 
+                    Questions.askForInterval,
+                    Questions.askForChord, 
+                    Questions.askForIntervalHalfToneSize,
+                    Questions.askForValue, 
+                    Questions.askForConsonanceDegreeByIntervalName,
+                    Questions.askForIntervalInHalfTones,
+                    Questions.askForChordAtDegree,
+                    Questions.askForComplementaryInterval,
+                    Questions.askToCompleteMeasure
                 ]);
                 const question = next();
                 return question;
