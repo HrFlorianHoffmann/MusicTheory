@@ -709,11 +709,11 @@
                 }
 
                 static randomizeMelody(measure, fromNote, toNote, signs, values) {
-                    let randomValues = [], remainder = countSixtyFourthsInMeasure(measure);
+                    let randomValues = [], remainder = MusicCalculator.countSixtyFourthsInMeasure(measure);
                     while (remainder > 0) {
-                        const possibleValues = values.filter(value => countSixtyFourthsInValue(value) <= remainder);
+                        const possibleValues = values.filter(value => MusicCalculator.countSixtyFourthsInValue(value) <= remainder);
                         const next = Randomizer.getRandomElementFrom(possibleValues);
-                        const length = countSixtyFourthsInValue(next);
+                        const length = MusicCalculator.countSixtyFourthsInValue(next);
                         randomValues.push(next);
                         remainder -= length;
                     }
@@ -1025,6 +1025,31 @@
                     return result;
                 }
 
+                static countSixtyFourthsInMeasure(measure) {
+                    const parts = measure.split('/');
+                    const realDenominator = parseInt(parts[1]);
+                    let denominator = realDenominator, numerator = parseInt(parts[0]);
+                    while (denominator < 64) {
+                        numerator *= 2;
+                        denominator *= 2;
+                    }
+                    return numerator;
+                }
+                
+                static countSixtyFourthsInValue(value) {
+                    const realDenominator = parseInt(value.split('/')[1]);
+                    let denominator = realDenominator, numerator = 1;
+                    while (denominator < 64) {
+                        numerator *= 2;
+                        denominator *= 2;
+                    }
+                    const dotted = value.endsWith('.');
+                    if (dotted) {
+                        numerator *= 1.5;
+                    }
+                    return numerator;
+                }
+
             }
 
             //---------------------------------------------------------
@@ -1323,163 +1348,212 @@
             // Quiz elements
             // --------------------------------------------------------
 
-            const setQuestionText = (text) => {
-                document.getElementById("question-text").textContent = text;
-            }
+            class Quiz {
 
-            const setAnswerText = (num, text) => {
-                const id = "answer-text-" + num;
-                document.getElementById(id).textContent = text;
-            }
-
-            const isArray = (array) => {
-                return array && typeof array != 'string' && array.length && typeof array.length === 'number';
-            }
-
-            const setAnswerTexts = (answers) => {
-                for (let i = 0; i < answers.length; i++) {
-                    const num = i + 1, answer = answers[i];
-                    if (typeof answer.text === 'string') {
-                        const textId = "answer-text-" + num;
-                        const textElement = document.getElementById(textId);
-                        textElement.textContent = answer.text;
-                    }
-                    if (isArray(answer.diagram)) {
-                        const diagramId = 'answer-diagram-' + num;
-                        const diagramElement = document.getElementById(diagramId);
-                        StaffLayouter.setMusicDiagram(diagramElement, answer.diagram);
-                    }
-                    if (!!answer.keyboard) {
-                        const diagramId = 'answer-diagram-' + num;
-                        const diagramElement = document.getElementById(diagramId);
-                        KeyboardDrawer.setKeyboard(diagramElement, answer.keyboard.from, answer.keyboard.to, answer.keyboard.markedNotes, 150, 75, 300, 100);
-                    }
+                static setQuestionText(text) {
+                    document.getElementById("question-text").textContent = text;
                 }
-            }
 
-            const fillWithWrongAnswers = (answers, wrongAnswers) => {
-                let result = JSON.parse(JSON.stringify(answers));
-                let j = 0;
-                for (let i = 0; i < answers.length; i++) {
-                    while (result.map(entry => JSON.stringify(entry)).indexOf(JSON.stringify(wrongAnswers[j])) >= 0) {
-                        j++;
-                    }
-                    if (result[i] === null) {
-                        result[i] = wrongAnswers[j];
-                        j++;
-                    }
+                static setAnswerText(num, text) {
+                    const id = "answer-text-" + num;
+                    document.getElementById(id).textContent = text;
                 }
-                return result;
-            }
 
-            const fillWithRandomWrongAnswers = (answers, randomizeWrongAnswer, comparisonConverter) => {
-                const convertForComparison = typeof comparisonConverter === 'function' ? comparisonConverter : (entry) => JSON.stringify(entry);
-                let result = JSON.parse(JSON.stringify(answers));
-                for (let i = 0; i < answers.length; i++) {
-                    if (result[i] === null) {
-                        let wrongAnswer = null;
-                        while (wrongAnswer === null || result.map(entry => convertForComparison(entry)).indexOf(convertForComparison(wrongAnswer)) >= 0) {
-                            wrongAnswer = randomizeWrongAnswer();
+                static isArray(array) {
+                    return array && typeof array != 'string' && array.length && typeof array.length === 'number';
+                }
+
+                static setAnswerTexts(answers) {
+                    for (let i = 0; i < answers.length; i++) {
+                        const num = i + 1, answer = answers[i];
+                        if (typeof answer.text === 'string') {
+                            const textId = "answer-text-" + num;
+                            const textElement = document.getElementById(textId);
+                            textElement.textContent = answer.text;
                         }
-                        result[i] = wrongAnswer;
+                        if (Quiz.isArray(answer.diagram)) {
+                            const diagramId = 'answer-diagram-' + num;
+                            const diagramElement = document.getElementById(diagramId);
+                            StaffLayouter.setMusicDiagram(diagramElement, answer.diagram);
+                        }
+                        if (!!answer.keyboard) {
+                            const diagramId = 'answer-diagram-' + num;
+                            const diagramElement = document.getElementById(diagramId);
+                            KeyboardDrawer.setKeyboard(diagramElement, answer.keyboard.from, answer.keyboard.to, answer.keyboard.markedNotes, 150, 75, 300, 100);
+                        }
                     }
                 }
-                return result;
-            }
 
-            const setOpacityOfElementWithId = (id, opacity) => {
-                const element = document.getElementById(id);
-                setOpacity(element, opacity);
-                return element;
-            }
-
-            const setOpacity = (element, opacity) => {
-                element.style.opacity = opacity;
-            }
-
-            const reduceOpacity = (element) => {
-                const opacity = element.style.getPropertyValue('opacity');
-                const newOpacity = opacity - 0.1;
-                element.style.opacity = newOpacity;
-                if (newOpacity > 0) {
-                    fadeOut(element, 50);
+                static fillWithWrongAnswers(answers, wrongAnswers) {
+                    let result = JSON.parse(JSON.stringify(answers));
+                    let j = 0;
+                    for (let i = 0; i < answers.length; i++) {
+                        while (result.map(entry => JSON.stringify(entry)).indexOf(JSON.stringify(wrongAnswers[j])) >= 0) {
+                            j++;
+                        }
+                        if (result[i] === null) {
+                            result[i] = wrongAnswers[j];
+                            j++;
+                        }
+                    }
+                    return result;
                 }
-            }
 
-            const fadeOut = (element, delay) => {
-                setTimeout(reduceOpacity, delay, element);
-            }
-
-            const correctAnswerPressed = (event) => {
-                statistics.correctAnswers++;
-                updateStatistics();
-                document.getElementById("explanation").innerHTML = "";
-                setOpacityOfElementWithId("wrong-answer-icon", 0);
-                const correctAnswerElement = setOpacityOfElementWithId("correct-answer-icon", 1);
-                fadeOut(correctAnswerElement, 750);
-                askNextQuestion();
-            }
-
-            const wrongAnswerPressed = (event) => {
-                statistics.wrongAnswers++;
-                updateStatistics();
-                if (state.question.explanation) {
-                    document.getElementById("explanation").innerHTML = state.question.explanation;
+                static fillWithRandomWrongAnswers(answers, randomizeWrongAnswer, comparisonConverter) {
+                    const convertForComparison = typeof comparisonConverter === 'function' ? comparisonConverter : (entry) => JSON.stringify(entry);
+                    let result = JSON.parse(JSON.stringify(answers));
+                    for (let i = 0; i < answers.length; i++) {
+                        if (result[i] === null) {
+                            let wrongAnswer = null;
+                            while (wrongAnswer === null || result.map(entry => convertForComparison(entry)).indexOf(convertForComparison(wrongAnswer)) >= 0) {
+                                wrongAnswer = randomizeWrongAnswer();
+                            }
+                            result[i] = wrongAnswer;
+                        }
+                    }
+                    return result;
                 }
-                state.next.push(state.question);
-                setOpacityOfElementWithId("correct-answer-icon", 0);
-                const wrongAnswerElement = setOpacityOfElementWithId("wrong-answer-icon", 1);
-                const correctAnswer = state.correctAnswer;
-                const correctAnswerElement = document.getElementById("answer-" + correctAnswer);
-                correctAnswerElement.style.backgroundColor = 'YellowGreen';
-                fadeOut(wrongAnswerElement, 500);
-            }
 
-            const highlightAnswer = (event) => {
-                event.srcElement.style.backgroundColor = 'gold';
-            }
+                static setOpacityOfElementWithId(id, opacity) {
+                    const element = document.getElementById(id);
+                    Quiz.setOpacity(element, opacity);
+                    return element;
+                }
 
-            const unhighlightAnswer = (element) => {
-                event.srcElement.style.backgroundColor = 'rgb(211, 228, 255)';
-            }
+                static setOpacity(element, opacity) {
+                    element.style.opacity = opacity;
+                }
 
-            const setEventListeners = (correctAnswer) => {
-                state.correctAnswer = correctAnswer;
-                for (let i = 1; i <= 4; i++) {
-                    const element = document.getElementById("answer-" + i);
-                    element.style.backgroundColor = 'rgb(211, 228, 255)';
-                    const attachedFunction = i === correctAnswer ? correctAnswerPressed : wrongAnswerPressed;
-                    element.removeEventListener("click", correctAnswerPressed);
-                    element.removeEventListener("click", wrongAnswerPressed);
-                    element.addEventListener("click", attachedFunction);
-                    const elements = document.getElementsByClassName("answer");
-                    for (let i = 0; i < elements.length; i++) {
-                        const element = elements[i];
-                        element.addEventListener("mouseenter", highlightAnswer);
-                        element.addEventListener("mouseleave", unhighlightAnswer);
+                static reduceOpacity(element) {
+                    const opacity = element.style.getPropertyValue('opacity');
+                    const newOpacity = opacity - 0.1;
+                    element.style.opacity = newOpacity;
+                    if (newOpacity > 0) {
+                        Quiz.fadeOut(element, 50);
                     }
                 }
-            }
 
-            const removeAllChildrenOfElementWithId = (id) => {
-                const element = document.getElementById(id);
-                removeAllChildren(element);
-            }
-
-            const removeAllChildren = (element) => {
-                while (element.firstChild) {
-                    element.removeChild(element.lastChild);
+                static fadeOut(element, delay) {
+                    setTimeout(reduceOpacity, delay, element);
                 }
-            }
 
-            const reset = () => {
-                state.question = null;
-                removeAllChildrenOfElementWithId('question-text');
-                removeAllChildrenOfElementWithId('question-diagram');
-                for (let i = 1; i <= 4; i++) {
-                    removeAllChildrenOfElementWithId('answer-text-' + i);
-                    removeAllChildrenOfElementWithId('answer-diagram-' + i);
+                static correctAnswerPressed(event) {
+                    statistics.correctAnswers++;
+                    Quiz.updateStatistics();
+                    document.getElementById("explanation").innerHTML = "";
+                    Quiz.setOpacityOfElementWithId("wrong-answer-icon", 0);
+                    const correctAnswerElement = Quiz.setOpacityOfElementWithId("correct-answer-icon", 1);
+                    Quiz.fadeOut(correctAnswerElement, 750);
+                    Quiz.askNextQuestion();
                 }
+
+                static wrongAnswerPressed(event) {
+                    statistics.wrongAnswers++;
+                    Quiz.updateStatistics();
+                    if (state.question.explanation) {
+                        document.getElementById("explanation").innerHTML = state.question.explanation;
+                    }
+                    state.next.push(state.question);
+                    Quiz.setOpacityOfElementWithId("correct-answer-icon", 0);
+                    const wrongAnswerElement = setOpacityOfElementWithId("wrong-answer-icon", 1);
+                    const correctAnswer = state.correctAnswer;
+                    const correctAnswerElement = document.getElementById("answer-" + correctAnswer);
+                    correctAnswerElement.style.backgroundColor = 'YellowGreen';
+                    fadeOut(wrongAnswerElement, 500);
+                }
+
+                static highlightAnswer(event) {
+                    event.srcElement.style.backgroundColor = 'gold';
+                }
+
+                static unhighlightAnswer(element) {
+                    event.srcElement.style.backgroundColor = 'rgb(211, 228, 255)';
+                }
+
+                static setEventListeners(correctAnswer) {
+                    state.correctAnswer = correctAnswer;
+                    for (let i = 1; i <= 4; i++) {
+                        const element = document.getElementById("answer-" + i);
+                        element.style.backgroundColor = 'rgb(211, 228, 255)';
+                        const attachedFunction = i === correctAnswer ? Quiz.correctAnswerPressed : Quiz.wrongAnswerPressed;
+                        element.removeEventListener("click", Quiz.correctAnswerPressed);
+                        element.removeEventListener("click", Quiz.wrongAnswerPressed);
+                        element.addEventListener("click", attachedFunction);
+                        const elements = document.getElementsByClassName("answer");
+                        for (let i = 0; i < elements.length; i++) {
+                            const element = elements[i];
+                            element.addEventListener("mouseenter", Quiz.highlightAnswer);
+                            element.addEventListener("mouseleave", Quiz.unhighlightAnswer);
+                        }
+                    }
+                }
+
+                static removeAllChildrenOfElementWithId(id) {
+                    const element = document.getElementById(id);
+                    Quiz.removeAllChildren(element);
+                }
+
+                static removeAllChildren(element) {
+                    while (element.firstChild) {
+                        element.removeChild(element.lastChild);
+                    }
+                }
+
+                static reset() {
+                    state.question = null;
+                    Quiz.removeAllChildrenOfElementWithId('question-text');
+                    Quiz.removeAllChildrenOfElementWithId('question-diagram');
+                    for (let i = 1; i <= 4; i++) {
+                        Quiz.removeAllChildrenOfElementWithId('answer-text-' + i);
+                        Quiz.removeAllChildrenOfElementWithId('answer-diagram-' + i);
+                    }
+                }
+
+                static askQuestion(question) {
+                    state.question = question;
+                    Quiz.setQuestionText(question.question.text);
+                    if (!!question.question.diagram) {
+                        const questionDiagram = document.getElementById("question-diagram");
+                        StaffLayouter.setMusicDiagram(questionDiagram, question.question.diagram);
+                    }
+                    Quiz.setAnswerTexts(question.answers);
+                    Quiz.setEventListeners(question.correctAnswer + 1);
+                }
+
+                static askNextQuestion() {
+                    Quiz.reset();
+                    while (state.next.length < 4) {
+                        const lastQuestion = Quiz.randomizeQuestion();
+                        state.next.push(lastQuestion);
+                    }
+                    const nextQuestion = state.next[0];
+                    state.next = state.next.slice(1);
+                    Quiz.askQuestion(nextQuestion);
+                }
+
+                static randomizeQuestion() {
+                    const next = Randomizer.getRandomElementFrom([
+                        Questions.askForKeyboardKey,
+                        Questions.askForNoteName, 
+                        Questions.askForInterval,
+                        Questions.askForChord, 
+                        Questions.askForIntervalHalfToneSize,
+                        Questions.askForValue, 
+                        Questions.askForConsonanceDegreeByIntervalName,
+                        Questions.askForIntervalInHalfTones,
+                        Questions.askForChordAtDegree,
+                        Questions.askForComplementaryInterval,
+                        Questions.askToCompleteMeasure
+                    ]);
+                    const question = next();
+                    return question;
+                }
+
+                static updateStatistics() {
+                    document.getElementById("correct-stat").textContent = "Richtig: " + statistics.correctAnswers;
+                    document.getElementById("wrong-stat").textContent = "Falsch: " + statistics.wrongAnswers;
+                }
+
             }
 
             // --------------------------------------------------------
@@ -1504,7 +1578,7 @@
                             markedNotes: markedNotes
                         }
                     };
-                    answers = fillWithRandomWrongAnswers(answers, () => {
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
                         const randomMarkedNote = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
                         const randomMarkedKeyboardKey = getNormalizedKeyboardKeyName(randomMarkedNote);
                         const randomMarkedNotes = keyboardKeys.filter(key => key === randomMarkedKeyboardKey);
@@ -1548,7 +1622,7 @@
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: MusicCalculator.getFormattedValue(value) };
-                    answers = fillWithRandomWrongAnswers(answers, () => ({ text: MusicCalculator.getFormattedValue(Randomizer.getRandomElementFrom(values)) }));
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => ({ text: MusicCalculator.getFormattedValue(Randomizer.getRandomElementFrom(values)) }));
                     const result = {
                         question: {
                             text: "Welchen Wert hat diese " + text + "?",
@@ -1578,7 +1652,7 @@
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: Namer.getGermanNoteName(note) };
-                    answers = fillWithRandomWrongAnswers(answers, () => {
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
                         const randomAnswer = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
                         const formattedAnswer = Namer.getGermanNoteName(randomAnswer);
                         return { text: formattedAnswer };
@@ -1629,7 +1703,7 @@
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: interval.name };
-                    answers = fillWithRandomWrongAnswers(answers, () => ({ text: Namer.randomizePreciseIntervalName() }));
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => ({ text: Namer.randomizePreciseIntervalName() }));
                     const result = {
                         question: {
                             text: "Wie heißt dieses Intervall?",
@@ -1648,7 +1722,7 @@
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: complementaryInterval.intervalName };
-                    answers = fillWithRandomWrongAnswers(answers, () => ({ text: Randomizer.getRandomElementFrom(intervals).intervalName }));
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => ({ text: Randomizer.getRandomElementFrom(intervals).intervalName }));
                     let explanation = "Das prinzipielle Komplementär zur " + interval.baseIntervalName + " ist die " + complementaryInterval.baseIntervalName + ". ";
                     explanation += "Da das Original-Intervall eine " + interval.qualifier + " Größe hat, hat das Komplementär die gegenteilige Größe, also eine " + complementaryInterval.qualifier + ". ";
                     explanation += "Die " + interval.intervalName + " umfasst " + interval.halfTones + " Halbtonschritte, sein Komplementär " + complementaryInterval.intervalName + " " + complementaryInterval.halfTones + " Halbtonschritte - in Summe immer 12.";
@@ -1687,7 +1761,7 @@
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: "" + halfTones };
-                    answers = fillWithRandomWrongAnswers(answers, () => ({ text: "" + Randomizer.randomizeNumberBetween(0, 12) }));
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => ({ text: "" + Randomizer.randomizeNumberBetween(0, 12) }));
                     const keyboardKeys = listKeyboardKeys(interval.note1, interval.note2);
                     const namedKeyboardNotes = keyboardKeys.map(note => Namer.getGermanNoteName(note));
                     const nameNote = (note) => {
@@ -1730,7 +1804,7 @@
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     const formattedCorrectAnswer = Namer.getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
                     answers[correctAnswer] = { text: formattedCorrectAnswer };
-                    answers = fillWithRandomWrongAnswers(answers, () => {
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
                         const wrongChord = MusicRandomizer.randomizeTriad(range);
                         const wrongInversion = Randomizer.randomizeNumberBetween(0, 2);
                         const formattedAnswer = Namer.getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
@@ -1769,7 +1843,7 @@
                         }
                     }
                     const wrongAnswers = Randomizer.getRandomElementsFrom(wrongCandidates, 3).map(entry => ({ text: "" + entry }));
-                    answers = fillWithWrongAnswers(answers, wrongAnswers);
+                    answers = Quiz.fillWithWrongAnswers(answers, wrongAnswers);
                     let explanation = "";
                     const baseIntervalName = solution.baseIntervalName;
                     switch(baseIntervalName) {
@@ -1856,7 +1930,7 @@
                     answers[correctAnswer] = { diagram: diagram };
                     const romanizedDegree = Namer.convertToRomanNumber(degree);
                     const formattedDegree = chordType === 'major' ? romanizedDegree.toUpperCase() : romanizedDegree.toLowerCase();
-                    answers = fillWithRandomWrongAnswers(answers, () => {
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
                         let diagram = [];
                         diagram.push({
                             element: 'clef',
@@ -1919,7 +1993,7 @@
                     const reduceToValue = (entry) => {
                         return !!entry ? entry.diagram[0].value : null;
                     }
-                    answers = fillWithRandomWrongAnswers(answers, () => {
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
                         const value = Randomizer.getRandomElementFrom(values);
                         const type = Randomizer.getRandomElementFrom(['note', 'pause']);
                         const note = type === 'note' ? MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs) : undefined;
@@ -1972,76 +2046,6 @@
 
             }
 
-            const countSixtyFourthsInMeasure = (measure) => {
-                const parts = measure.split('/');
-                const realDenominator = parseInt(parts[1]);
-                let denominator = realDenominator, numerator = parseInt(parts[0]);
-                while (denominator < 64) {
-                    numerator *= 2;
-                    denominator *= 2;
-                }
-                return numerator;
-            }
-            
-            const countSixtyFourthsInValue = (value) => {
-                const realDenominator = parseInt(value.split('/')[1]);
-                let denominator = realDenominator, numerator = 1;
-                while (denominator < 64) {
-                    numerator *= 2;
-                    denominator *= 2;
-                }
-                const dotted = value.endsWith('.');
-                if (dotted) {
-                    numerator *= 1.5;
-                }
-                return numerator;
-            }
-
-            const askQuestion = (question) => {
-                state.question = question;
-                setQuestionText(question.question.text);
-                if (!!question.question.diagram) {
-                    const questionDiagram = document.getElementById("question-diagram");
-                    StaffLayouter.setMusicDiagram(questionDiagram, question.question.diagram);
-                }
-                setAnswerTexts(question.answers);
-                setEventListeners(question.correctAnswer + 1);
-            }
-
-            const askNextQuestion = () => {
-                reset();
-                while (state.next.length < 4) {
-                    const lastQuestion = randomizeQuestion();
-                    state.next.push(lastQuestion);
-                }
-                const nextQuestion = state.next[0];
-                state.next = state.next.slice(1);
-                askQuestion(nextQuestion);
-            }
-
-            const randomizeQuestion = () => {
-                const next = Randomizer.getRandomElementFrom([
-                    Questions.askForKeyboardKey,
-                    Questions.askForNoteName, 
-                    Questions.askForInterval,
-                    Questions.askForChord, 
-                    Questions.askForIntervalHalfToneSize,
-                    Questions.askForValue, 
-                    Questions.askForConsonanceDegreeByIntervalName,
-                    Questions.askForIntervalInHalfTones,
-                    Questions.askForChordAtDegree,
-                    Questions.askForComplementaryInterval,
-                    Questions.askToCompleteMeasure
-                ]);
-                const question = next();
-                return question;
-            }
-
-           const updateStatistics = () => {
-                document.getElementById("correct-stat").textContent = "Richtig: " + statistics.correctAnswers;
-                document.getElementById("wrong-stat").textContent = "Falsch: " + statistics.wrongAnswers;
-            }
-
             let state = {
                 question: null,
                 next: []
@@ -2052,7 +2056,7 @@
                 wrongAnswers: 0
             }
 
-            askNextQuestion();
+            Quiz.askNextQuestion();
 
         </script>
     </body>
