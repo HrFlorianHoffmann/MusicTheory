@@ -698,7 +698,7 @@
                         const signs = Randomizer.getRandomElementFrom([['', '#'], ['', 'B']]);
                         note1 = MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs);
                         note2 = MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs);
-                        interval = calculateIntervalName(note1, note2);
+                        interval = Namer.calculateIntervalName(note1, note2);
                     }
                     const result = {
                         name: interval,
@@ -866,7 +866,7 @@
 
                 static calculateBaseIntervalName(a, b) {
                     const baseIntervalSize = MusicCalculator.calculateBaseIntervalSize(a, b);
-                    const result = getBaseIntervalNames()[baseIntervalSize];
+                    const result = Namer.getBaseIntervalNames()[baseIntervalSize];
                     return result;
                 }
 
@@ -999,183 +999,255 @@
             // Names
             //---------------------------------------------------------
 
-            const convertToRomanNumber = (number) => {
-                switch (number) {
-                    case 1:
-                        return 'I';
-                    case 2:
-                        return 'II';
-                    case 3:
-                        return 'III';
-                    case 4:
-                        return 'IV';
-                    case 5:
-                        return 'V';
-                    case 6:
-                        return 'VI';
-                    case 7:
-                        return 'VII';
-                }
-            }
+            class Namer {
 
-            const getGermanNoteName = (note) => {
-                const nameWithoutOctave = getGermanNoteNameWithoutOctave(note);
-                const octave = parseInt(note.charAt(1));
-                let result = octave >= 3 ? nameWithoutOctave.toLowerCase() : nameWithoutOctave;
-                const octaveAddition = octave >= 4 ? "'".repeat(octave - 3) : '';
-                result += octaveAddition;
-                return result;
-            }
-
-            const getGermanNoteNameWithoutOctave = (note) => {
-                const signAdditions = { '': '', '#': 'is', 'B': 'es' };
-                const baseNote = note.charAt(0);
-                let name = baseNote.toUpperCase();
-                for (let i = 2; i < note.length; i++) {
-                    const sign = note.charAt(i);
-                    const signAdditionBase = signAdditions[sign];
-                    const signAddition = (name === 'E' || name === 'A' ) && signAdditionBase === 'es' ? 's' : signAdditionBase;
-                    name = name + signAddition;
-                    if (name === 'Hes') {
-                        name = 'B';
+                static convertToRomanNumber(number) {
+                    switch (number) {
+                        case 1:
+                            return 'I';
+                        case 2:
+                            return 'II';
+                        case 3:
+                            return 'III';
+                        case 4:
+                            return 'IV';
+                        case 5:
+                            return 'V';
+                        case 6:
+                            return 'VI';
+                        case 7:
+                            return 'VII';
                     }
                 }
-                return name;
-            }
 
-            const getGermanChordName = (baseNote, type, inversion) => {
-                const formattedBaseNoteName = getGermanNoteNameWithoutOctave(baseNote);
-                const formattedChordType = type === 'major' ? 'Dur' : 'Moll';
-                let result = [formattedBaseNoteName, formattedChordType].join('-');
-                if (inversion > 0) {
-                    result += ' (' + inversion + ". UK)";
-                } else {
-                    result += ' (GS)';
+                static getGermanNoteName(note) {
+                    const nameWithoutOctave = Namer.getGermanNoteNameWithoutOctave(note);
+                    const octave = parseInt(note.charAt(1));
+                    let result = octave >= 3 ? nameWithoutOctave.toLowerCase() : nameWithoutOctave;
+                    const octaveAddition = octave >= 4 ? "'".repeat(octave - 3) : '';
+                    result += octaveAddition;
+                    return result;
                 }
-                return result;
-            }
 
-            const getBaseIntervalNames = () => {
-                return ['Prime', 'Sekunde', 'Terz', 'Quarte', 'Quinte', 'Sexte', 'Septime', 'Oktave'];
-            }
+                static getGermanNoteNameWithoutOctave(note) {
+                    const signAdditions = { '': '', '#': 'is', 'B': 'es' };
+                    const baseNote = note.charAt(0);
+                    let name = baseNote.toUpperCase();
+                    for (let i = 2; i < note.length; i++) {
+                        const sign = note.charAt(i);
+                        const signAdditionBase = signAdditions[sign];
+                        const signAddition = (name === 'E' || name === 'A' ) && signAdditionBase === 'es' ? 's' : signAdditionBase;
+                        name = name + signAddition;
+                        if (name === 'Hes') {
+                            name = 'B';
+                        }
+                    }
+                    return name;
+                }
 
-            const getIntervalNames = () => {
-                return ['Prime', 'kleine Sekunde', 'große Sekunde', 'kleine Terz', 'große Terz', 'Quarte', 'Tritonus', 'Quinte', 'kleine Sexte', 'große Sexte', 'kleine Septime', 'große Septime', 'Oktave'];
-            }
+                static getGermanChordName(baseNote, type, inversion) {
+                    const formattedBaseNoteName = Namer.getGermanNoteNameWithoutOctave(baseNote);
+                    const formattedChordType = type === 'major' ? 'Dur' : 'Moll';
+                    let result = [formattedBaseNoteName, formattedChordType].join('-');
+                    if (inversion > 0) {
+                        result += ' (' + inversion + ". UK)";
+                    } else {
+                        result += ' (GS)';
+                    }
+                    return result;
+                }
 
-            const getPreciseIntervalNames = () => {
-                return {
-                    'Prime': {
-                        0: '',
-                        1: 'übermäßige'
-                    },
-                    'Sekunde': {
-                        0: 'verminderte',
-                        1: 'kleine',
-                        2: 'große',
-                        3: 'übermäßige'
-                    },
-                    'Terz': {
-                        2: 'verminderte',
-                        3: 'kleine',
-                        4: 'große',
-                        5: 'übermäßige'
-                    },
-                    'Quarte': {
-                        4: 'verminderte',
-                        5: '',
-                        6: 'übermäßige'
-                    },
-                    'Quinte': {
-                        6: 'verminderte',
-                        7: '',
-                        8: 'übermäßige'
-                    },
-                    'Sexte': {
-                        7: 'verminderte',
-                        8: 'kleine',
-                        9: 'große',
-                        10: 'übermäßige'
-                    },
-                    'Septime': {
-                        9: 'verminderte',
-                        10: 'kleine',
-                        11: 'große',
-                        12: 'übermäßige'
-                    },
-                    'Oktave': {
-                        11: 'verminderte',
-                        12: '',
-                        13: 'übermäßige'
+                static getBaseIntervalNames() {
+                    return ['Prime', 'Sekunde', 'Terz', 'Quarte', 'Quinte', 'Sexte', 'Septime', 'Oktave'];
+                }
+
+                static getIntervalNames()  {
+                    return ['Prime', 'kleine Sekunde', 'große Sekunde', 'kleine Terz', 'große Terz', 'Quarte', 'Tritonus', 'Quinte', 'kleine Sexte', 'große Sexte', 'kleine Septime', 'große Septime', 'Oktave'];
+                }
+
+                static getPreciseIntervalNames() {
+                    return {
+                        'Prime': {
+                            0: '',
+                            1: 'übermäßige'
+                        },
+                        'Sekunde': {
+                            0: 'verminderte',
+                            1: 'kleine',
+                            2: 'große',
+                            3: 'übermäßige'
+                        },
+                        'Terz': {
+                            2: 'verminderte',
+                            3: 'kleine',
+                            4: 'große',
+                            5: 'übermäßige'
+                        },
+                        'Quarte': {
+                            4: 'verminderte',
+                            5: '',
+                            6: 'übermäßige'
+                        },
+                        'Quinte': {
+                            6: 'verminderte',
+                            7: '',
+                            8: 'übermäßige'
+                        },
+                        'Sexte': {
+                            7: 'verminderte',
+                            8: 'kleine',
+                            9: 'große',
+                            10: 'übermäßige'
+                        },
+                        'Septime': {
+                            9: 'verminderte',
+                            10: 'kleine',
+                            11: 'große',
+                            12: 'übermäßige'
+                        },
+                        'Oktave': {
+                            11: 'verminderte',
+                            12: '',
+                            13: 'übermäßige'
+                        }
                     }
                 }
+
+                static calculateIntervalName(a, b) {
+                    const baseIntervalName = MusicCalculator.calculateBaseIntervalName(a, b);
+                    if (!baseIntervalName) {
+                        return null;
+                    }
+                    const halfTones = MusicCalculator.calculateIntervalInHalfTones(a, b);
+                    const preciseIntervalNames = Namer.getPreciseIntervalNames();
+                    const baseEntry = preciseIntervalNames[baseIntervalName];
+                    const detailEntry = !!baseEntry ? baseEntry[halfTones] : null;
+                    const qualifier = !!detailEntry ? detailEntry : null;
+                    const result = !!qualifier ? [qualifier, baseIntervalName].join(' ') : null;
+                    return result;
+                }
+
+                static randomizePreciseIntervalName() {
+                    const intervalDetails = Namer.getPreciseIntervalNames();
+                    const baseIntervalName = Randomizer.getRandomElementFrom(Object.keys(intervalDetails));
+                    const baseIntervalDetails = intervalDetails[baseIntervalName];
+                    const intervalSize = Randomizer.getRandomElementFrom(Object.keys(baseIntervalDetails));
+                    const qualifier = baseIntervalDetails[intervalSize];
+                    const result = [qualifier, baseIntervalName].join(' ');
+                    return result;
+                }
+
+                static determineIntervals() {
+                    let result = [];
+                    const intervals = Namer.getPreciseIntervalNames();
+                    const baseIntervalNames = Object.keys(intervals);
+                    for (let j = 0; j < baseIntervalNames.length; j++) {
+                        const baseIntervalName = baseIntervalNames[j];
+                        const intervalDetail = intervals[baseIntervalName];
+                        const halfTones = Object.keys(intervalDetail);
+                        for (let i = 0; i < halfTones.length; i++) {
+                            const numHalfTones = halfTones[i];
+                            const qualifier = intervalDetail[numHalfTones];
+                            const qualifiedIntervalName = [qualifier, baseIntervalName].join(' ').trim();
+                            const entry = {
+                                intervalName: qualifiedIntervalName,
+                                baseIntervalName: baseIntervalName,
+                                qualifier: qualifier,
+                                halfTones: parseInt(numHalfTones)
+                            }
+                            result.push(entry);
+                        }
+                    }
+                    return result;
+                }
+
+                static determinePureAndSmallIntervals() {
+                    return Namer.determineIntervalsWithQualifiers(['', 'kleine']);
+                }
+
+                static determinePureAndSmallAndBigIntervals() {
+                    return Namer.determineIntervalsWithQualifiers(['', 'kleine', 'große']);
+                }
+
+                static determineIntervalsWithQualifiers(qualifiers) {
+                    return Namer.determineIntervals.filter(entry => qualifiers.indexOf(entry.qualifier) >= 0);
+                }
+
+                static listNotesInKey(key) {
+                    const notes = MusicCalculator.getOctaveNotes();
+                    const index = notes.indexOf(key);
+                    const result = notes.slice(index).concat(notes.slice(0, index));
+                    return result;
+                }
+
             }
 
-            const calculateIntervalName = (a, b) => {
-                const baseIntervalName = MusicCalculator.calculateBaseIntervalName(a, b);
-                if (!baseIntervalName) {
+            // --------------------------------------------------------
+            // Math calculations
+            // --------------------------------------------------------
+
+            class FractionCalculator {
+
+                static addFractions(fractions) {
+                    const adjusted = FractionCalculator.adjustToCommonDenominator(fractions);
+                    const numerators = FractionCalculator.listNumerators(adjusted.fractions);
+                    const resultNumerator = numerators.reduce((p, c) => p + c, 0);
+                    const result = resultNumerator + '/' + adjusted.denominator;
+                    return result;
+                }
+
+                static subtractFractions(fractions) {
+                    const adjusted = FractionCalculator.adjustToCommonDenominator(fractions);
+                    const numerators = FractionCalculator.listNumerators(adjusted.fractions);
+                    const resultNumerator = numerators.slice(1).reduce((p, c) => p - c, numerators[0]);
+                    const result = resultNumerator + '/' + adjusted.denominator;
+                    return result;
+                }
+
+                static adjustToCommonDenominator(fractions) {
+                    const commonDenominator = FractionCalculator.calculateSmallestCommonDenominator(fractions);
+                    const adjustedFractions = fractions.map(fraction => FractionCalculator.adjustToDenominator(fraction, commonDenominator));
+                    const result = {
+                        fractions: adjustedFractions,
+                        denominator: commonDenominator
+                    }
+                    return result;
+                }
+
+                static adjustToDenominator(fraction, denominator) {
+                    const parts = fraction.split("/");
+                    const actualNumerator = parseInt(parts[0]);
+                    const actualDenominator = parseInt(parts[1]);
+                    const multiple = denominator / actualDenominator;
+                    const adjustedNumerator = actualNumerator * multiple;
+                    const result = adjustedNumerator + '/' + denominator;
+                    return result;
+                }
+
+                static calculateSmallestCommonDenominator(fractions) {
+                    const denominators = FractionCalculator.listDenominators(fractions);
+                    const result = denominators.reduce((p, c) => FractionCalculator.calculateSmallestCommonMultiple(p, c), 1);
+                    return result;
+                }
+
+                static calculateSmallestCommonMultiple(a, b) {
+                    const start = Math.max(a, b), end = a * b;
+                    for (let i = start; i <= end; i++) {
+                        if (i % a === 0 && i % b === 0) {
+                            return i;
+                        }
+                    }
                     return null;
                 }
-                const halfTones = MusicCalculator.calculateIntervalInHalfTones(a, b);
-                const preciseIntervalNames = getPreciseIntervalNames();
-                const baseEntry = preciseIntervalNames[baseIntervalName];
-                const detailEntry = !!baseEntry ? baseEntry[halfTones] : null;
-                const qualifier = !!detailEntry ? detailEntry : null;
-                const result = !!qualifier ? [qualifier, baseIntervalName].join(' ') : null;
-                return result;
-            }
 
-            const randomizePreciseIntervalName = () => {
-                const intervalDetails = getPreciseIntervalNames();
-                const baseIntervalName = Randomizer.getRandomElementFrom(Object.keys(intervalDetails));
-                const baseIntervalDetails = intervalDetails[baseIntervalName];
-                const intervalSize = Randomizer.getRandomElementFrom(Object.keys(baseIntervalDetails));
-                const qualifier = baseIntervalDetails[intervalSize];
-                const result = [qualifier, baseIntervalName].join(' ');
-                return result;
-            }
-
-            const determineIntervals = () => {
-                let result = [];
-                const intervals = getPreciseIntervalNames();
-                const baseIntervalNames = Object.keys(intervals);
-                for (let j = 0; j < baseIntervalNames.length; j++) {
-                    const baseIntervalName = baseIntervalNames[j];
-                    const intervalDetail = intervals[baseIntervalName];
-                    const halfTones = Object.keys(intervalDetail);
-                    for (let i = 0; i < halfTones.length; i++) {
-                        const numHalfTones = halfTones[i];
-                        const qualifier = intervalDetail[numHalfTones];
-                        const qualifiedIntervalName = [qualifier, baseIntervalName].join(' ').trim();
-                        const entry = {
-                            intervalName: qualifiedIntervalName,
-                            baseIntervalName: baseIntervalName,
-                            qualifier: qualifier,
-                            halfTones: parseInt(numHalfTones)
-                        }
-                        result.push(entry);
-                    }
+                static listNumerators(fractions) {
+                    return fractions.map(fraction => parseInt(fraction.split('/')[0]));
                 }
-                return result;
-            }
 
-            const determinePureAndSmallIntervals = () => {
-                return determineIntervalsWithQualifiers(['', 'kleine']);
-            }
-
-            const determinePureAndSmallAndBigIntervals = () => {
-                return determineIntervalsWithQualifiers(['', 'kleine', 'große']);
-            }
-
-            const determineIntervalsWithQualifiers = (qualifiers) => {
-                return determineIntervals.filter(entry => qualifiers.indexOf(entry.qualifier) >= 0);
-            }
-
-            const listNotesInKey = (key) => {
-                const notes = MusicCalculator.getOctaveNotes();
-                const index = notes.indexOf(key);
-                const result = notes.slice(index).concat(notes.slice(0, index));
-                return result;
+                static listDenominators(fractions) {
+                    return fractions.map(fraction => parseInt(fraction.split('/')[1]));
+                }
+                
             }
 
             // --------------------------------------------------------
@@ -1385,7 +1457,7 @@
             const askForKeyboardKey = () => {
                 const note = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
                 const keyboardKey = getNormalizedKeyboardKeyName(note);
-                const noteName = getGermanNoteNameWithoutOctave(note);
+                const noteName = Namer.getGermanNoteNameWithoutOctave(note);
                 const fromNote = 'A3#', toNote = 'C5#';
                 const keyboardKeys = listKeyboardKeys(fromNote, toNote);
                 const markedNotes = keyboardKeys.filter(key => key === keyboardKey);
@@ -1471,20 +1543,20 @@
                 });
                 let answers = [null, null, null, null];
                 const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: getGermanNoteName(note) };
+                answers[correctAnswer] = { text: Namer.getGermanNoteName(note) };
                 answers = fillWithRandomWrongAnswers(answers, () => {
                     const randomAnswer = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
-                    formattedAnswer = getGermanNoteName(randomAnswer);
+                    formattedAnswer = Namer.getGermanNoteName(randomAnswer);
                     return { text: formattedAnswer };
                 });
                 const octaveNames = { 2: 'großen', 3: 'kleinen', 4: 'eingestrichenen', 5: 'zweigestrichenen', 6: 'dreigestrichenen' };
                 const octaveQualifiers = { 2: 'groß', 3: 'klein', 4: "mit einem '", 5: "mit zwei '", 6: "mit drei '" };
                 let explanation = "Der Grundton ist ein " + note.charAt(0) + ". ";
                 if (note.length > 2) {
-                    explanation += "Mit einem Vorzeichen " + note.charAt(2).toLowerCase() + " wird aus dem Grundton ein " + getGermanNoteNameWithoutOctave(note.substring(0, 3)) + ". ";
+                    explanation += "Mit einem Vorzeichen " + note.charAt(2).toLowerCase() + " wird aus dem Grundton ein " + Namer.getGermanNoteNameWithoutOctave(note.substring(0, 3)) + ". ";
                 }
                 if (note.length > 3) {
-                    explanation += "Mit einem weiteren Vorzeichen " + note.charAt(3).toLowerCase() + " wird daraus ein " + getGermanNoteNameWithoutOctave(note) + ". ";
+                    explanation += "Mit einem weiteren Vorzeichen " + note.charAt(3).toLowerCase() + " wird daraus ein " + Namer.getGermanNoteNameWithoutOctave(note) + ". ";
                 }
                 explanation += "Die Stellung relativ zum Notenschlüssel ergibt, dass die Note in der " + octaveNames[note.charAt(1)] + " Oktave liegt; ";
                 explanation += "die Note wird deshalb " + octaveQualifiers[note.charAt(1)] + " geschrieben.";
@@ -1523,7 +1595,7 @@
                 let answers = [null, null, null, null];
                 const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { text: interval.name };
-                answers = fillWithRandomWrongAnswers(answers, () => ({ text: randomizePreciseIntervalName() }));
+                answers = fillWithRandomWrongAnswers(answers, () => ({ text: Namer.randomizePreciseIntervalName() }));
                 const result = {
                     question: {
                         text: "Wie heißt dieses Intervall?",
@@ -1568,7 +1640,7 @@
             }
 
             const askForComplementaryInterval = () => {
-                const intervals = determineIntervals();
+                const intervals = Namer.determineIntervals();
                 const interval = Randomizer.getRandomElementFrom(intervals);
                 const complementaryInterval = determineComplementaryInterval(interval);
                 let answers = [null, null, null, null];
@@ -1615,9 +1687,9 @@
                 answers[correctAnswer] = { text: "" + halfTones };
                 answers = fillWithRandomWrongAnswers(answers, () => ({ text: "" + Randomizer.randomizeNumberBetween(0, 12) }));
                 const keyboardKeys = listKeyboardKeys(interval.note1, interval.note2);
-                const namedKeyboardNotes = keyboardKeys.map(note => getGermanNoteName(note));
+                const namedKeyboardNotes = keyboardKeys.map(note => Namer.getGermanNoteName(note));
                 const nameNote = (note) => {
-                    const namedNote = getGermanNoteName(note), normalizedNote = getGermanNoteName(getNormalizedKeyboardKeyName(note));
+                    const namedNote = Namer.getGermanNoteName(note), normalizedNote = Namer.getGermanNoteName(getNormalizedKeyboardKeyName(note));
                     return namedNote === normalizedNote ? namedNote : namedNote + " ≙ " + normalizedNote;
                 }
                 let explanation = "Die Noten sind " + nameNote(interval.note1) + " und " + nameNote(interval.note2) + ". ";
@@ -1654,19 +1726,19 @@
                 });
                 let answers = [null, null, null, null];
                 const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                const formattedCorrectAnswer = getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
+                const formattedCorrectAnswer = Namer.getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
                 answers[correctAnswer] = { text: formattedCorrectAnswer };
                 answers = fillWithRandomWrongAnswers(answers, () => {
                     const wrongChord = MusicRandomizer.randomizeTriad(range);
                     const wrongInversion = Randomizer.randomizeNumberBetween(0, 2);
-                    formattedAnswer = getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
+                    formattedAnswer = Namer.getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
                     return { text: formattedAnswer };
                 });
-                let explanation = "Die Noten sind " + chord.map(note => getGermanNoteNameWithoutOctave(note)).join(', ') + ". ";
+                let explanation = "Die Noten sind " + chord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join(', ') + ". ";
                 explanation += "Der Akkord ist in der " + (inversion === 0 ? 'Grundstellung, denn es ist keine Lücke erkennbar' : (inversion + ". Umkehrung, erkennbar an der Lücke")) + ". ";
-                explanation += "In dieser Stellung ist der Grundton " + (inversion === 0 ? 'die unterste Note' : 'die Note oberhalb der Lücke') + ", also " + getGermanNoteNameWithoutOctave(randomChord.baseNote) + ". ";
-                explanation += "In der Grundstellung wären die Noten des Akkords " + rawChord.map(note => getGermanNoteNameWithoutOctave(note)).join(', ') + ".<br/><br/>";
-                explanation += "Zwischen dem Grundton " + getGermanNoteNameWithoutOctave(rawChord[0]) + " und dem in der Grundstellung darüber liegenden Ton " + getGermanNoteNameWithoutOctave(rawChord[1]) + " liegen " + MusicCalculator.calculateIntervalInHalfTones(rawChord[0], rawChord[1]) + " Halbtonschritte, also eine " + calculateIntervalName(rawChord[0], rawChord[1]) + ". ";
+                explanation += "In dieser Stellung ist der Grundton " + (inversion === 0 ? 'die unterste Note' : 'die Note oberhalb der Lücke') + ", also " + Namer.getGermanNoteNameWithoutOctave(randomChord.baseNote) + ". ";
+                explanation += "In der Grundstellung wären die Noten des Akkords " + rawChord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join(', ') + ".<br/><br/>";
+                explanation += "Zwischen dem Grundton " + Namer.getGermanNoteNameWithoutOctave(rawChord[0]) + " und dem in der Grundstellung darüber liegenden Ton " + Namer.getGermanNoteNameWithoutOctave(rawChord[1]) + " liegen " + MusicCalculator.calculateIntervalInHalfTones(rawChord[0], rawChord[1]) + " Halbtonschritte, also eine " + Namer.calculateIntervalName(rawChord[0], rawChord[1]) + ". ";
                 explanation += "Dieses Intervall erzeugt einen " + (randomChord.chordType === 'major' ? 'Dur' : 'Moll' ) + "-Akkord.";
                 const result = {
                     question: {
@@ -1681,7 +1753,7 @@
             }
 
             const askForIntervalHalfToneSize = () => {
-                const intervals = determineIntervals();
+                const intervals = Namer.determineIntervals();
                 const solution = Randomizer.getRandomElementFrom(intervals);
                 let answers = [null, null, null, null];
                 const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
@@ -1780,7 +1852,7 @@
                 let answers = [null, null, null, null];
                 const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { diagram: diagram };
-                const romanizedDegree = convertToRomanNumber(degree);
+                const romanizedDegree = Namer.convertToRomanNumber(degree);
                 const formattedDegree = chordType === 'major' ? romanizedDegree.toUpperCase() : romanizedDegree.toLowerCase();
                 answers = fillWithRandomWrongAnswers(answers, () => {
                     let diagram = [];
@@ -1799,11 +1871,11 @@
                         diagram: diagram
                     };
                 });
-                let explanation = "Die Tonleiter über dem " + key + " umfasst die Töne " + listNotesInKey(key).map((note, i) => (i+1) + "=" + note).join(", ") + ". ";
+                let explanation = "Die Tonleiter über dem " + key + " umfasst die Töne " + Namer.listNotesInKey(key).map((note, i) => (i+1) + "=" + note).join(", ") + ". ";
                 explanation += "Die " + romanizedDegree + ". = " + degree + ". Stufe darin ist also die Note " + chordBaseNote.charAt(0) + ". ";
                 explanation += "Der Basis-Dreiklang über dieser Note umfasst die Töne " + chord.map(note => note.charAt(0)).join("-") + ". ";
                 explanation += "Die Groß-/Kleinschreibung der Stufe " + formattedDegree + " zeigt an, dass ein " + (chordType === 'major' ? "Dur" : "Moll") + "-Akkord gesucht ist, das Intervall zwischen dem Grundton und dem mittleren Ton des Akkords muss also eine "  + (chordType === 'major' ? "große" : "kleine") + " Terz sein. ";
-                explanation += "Passt man die Vorzeichen des Basis-Dreiklangs so an, dass sich dieses Intervall ergibt, erhält man die Töne " + chord.map(note => getGermanNoteNameWithoutOctave(note)).join("-") + ".";
+                explanation += "Passt man die Vorzeichen des Basis-Dreiklangs so an, dass sich dieses Intervall ergibt, erhält man die Töne " + chord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join("-") + ".";
                 const result = {
                     question: {
                         text: 'Welcher Akkord ist die ' + formattedDegree + '. Stufe der ' + key + '-Dur-Tonleiter?'
@@ -1813,70 +1885,6 @@
                     explanation
                 };
                 return result;
-            }
-
-            class FractionCalculator {
-
-                static addFractions(fractions) {
-                    const adjusted = FractionCalculator.adjustToCommonDenominator(fractions);
-                    const numerators = FractionCalculator.listNumerators(adjusted.fractions);
-                    const resultNumerator = numerators.reduce((p, c) => p + c, 0);
-                    const result = resultNumerator + '/' + adjusted.denominator;
-                    return result;
-                }
-
-                static subtractFractions(fractions) {
-                    const adjusted = FractionCalculator.adjustToCommonDenominator(fractions);
-                    const numerators = FractionCalculator.listNumerators(adjusted.fractions);
-                    const resultNumerator = numerators.slice(1).reduce((p, c) => p - c, numerators[0]);
-                    const result = resultNumerator + '/' + adjusted.denominator;
-                    return result;
-                }
-
-                static adjustToCommonDenominator(fractions) {
-                    const commonDenominator = FractionCalculator.calculateSmallestCommonDenominator(fractions);
-                    const adjustedFractions = fractions.map(fraction => FractionCalculator.adjustToDenominator(fraction, commonDenominator));
-                    const result = {
-                        fractions: adjustedFractions,
-                        denominator: commonDenominator
-                    }
-                    return result;
-                }
-
-                static adjustToDenominator(fraction, denominator) {
-                    const parts = fraction.split("/");
-                    const actualNumerator = parseInt(parts[0]);
-                    const actualDenominator = parseInt(parts[1]);
-                    const multiple = denominator / actualDenominator;
-                    const adjustedNumerator = actualNumerator * multiple;
-                    const result = adjustedNumerator + '/' + denominator;
-                    return result;
-                }
-
-                static calculateSmallestCommonDenominator(fractions) {
-                    const denominators = FractionCalculator.listDenominators(fractions);
-                    const result = denominators.reduce((p, c) => FractionCalculator.calculateSmallestCommonMultiple(p, c), 1);
-                    return result;
-                }
-
-                static calculateSmallestCommonMultiple(a, b) {
-                    const start = Math.max(a, b), end = a * b;
-                    for (let i = start; i <= end; i++) {
-                        if (i % a === 0 && i % b === 0) {
-                            return i;
-                        }
-                    }
-                    return null;
-                }
-
-                static listNumerators(fractions) {
-                    return fractions.map(fraction => parseInt(fraction.split('/')[0]));
-                }
-
-                static listDenominators(fractions) {
-                    return fractions.map(fraction => parseInt(fraction.split('/')[1]));
-                }
-                
             }
 
             const askToCompleteMeasure = () => {
