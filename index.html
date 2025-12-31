@@ -85,816 +85,914 @@
             // Draw basic shapes
             // --------------------------------------------------------
 
-            const addGroup = (parent, id) => {
-                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                if (!!id) {
-                    group.setAttribute('id', id);
+            class SvgDrawer {
+
+                static addGroup(parent, id) {
+                    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    if (!!id) {
+                        group.setAttribute('id', id);
+                    }
+                    parent.appendChild(group);
+                    return group;
                 }
-                parent.appendChild(group);
-                return group;
-            }
 
-            const drawLine = (parent, x1, y1, x2, y2, stroke, strokeWidth) => {
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', x1);
-                line.setAttribute('y1', y1);
-                line.setAttribute('x2', x2);
-                line.setAttribute('y2', y2);
-                line.setAttribute('stroke', stroke);
-                line.setAttribute('stroke-width', strokeWidth);
-                parent.appendChild(line);
-                return line;
-            }
+                static drawLine(parent, x1, y1, x2, y2, stroke, strokeWidth) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x1);
+                    line.setAttribute('y1', y1);
+                    line.setAttribute('x2', x2);
+                    line.setAttribute('y2', y2);
+                    line.setAttribute('stroke', stroke);
+                    line.setAttribute('stroke-width', strokeWidth);
+                    parent.appendChild(line);
+                    return line;
+                }
 
-            const drawPath = (parent, d, stroke, strokeWidth, fill) => {
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', d);
-                path.setAttribute('stroke', stroke);
-                path.setAttribute('stroke-width', strokeWidth);
-                path.setAttribute('fill', fill);
-                parent.appendChild(path);
-                return path;
-            }
+                static drawPath(parent, d, stroke, strokeWidth, fill) {
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', d);
+                    path.setAttribute('stroke', stroke);
+                    path.setAttribute('stroke-width', strokeWidth);
+                    path.setAttribute('fill', fill);
+                    parent.appendChild(path);
+                    return path;
+                }
 
-            const drawRectangle = (parent, x, y, width, height, stroke, strokeWidth, fill) => {
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                rect.setAttribute('x', x);
-                rect.setAttribute('y', y);
-                rect.setAttribute('width', width);
-                rect.setAttribute('height', height);
-                rect.setAttribute('stroke', stroke);
-                rect.setAttribute('stroke-width', strokeWidth);
-                rect.setAttribute('fill', fill);
-                parent.appendChild(rect);
-                return rect;
-            }
+                static drawRectangle(parent, x, y, width, height, stroke, strokeWidth, fill) {
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', x);
+                    rect.setAttribute('y', y);
+                    rect.setAttribute('width', width);
+                    rect.setAttribute('height', height);
+                    rect.setAttribute('stroke', stroke);
+                    rect.setAttribute('stroke-width', strokeWidth);
+                    rect.setAttribute('fill', fill);
+                    parent.appendChild(rect);
+                    return rect;
+                }
 
-            const drawCircle = (parent, cx, cy, r, stroke, strokeWidth, fill) => {
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.setAttribute('cx', cx);
-                circle.setAttribute('cy', cy);
-                circle.setAttribute('r', r);
-                circle.setAttribute('stroke', stroke);
-                circle.setAttribute('stroke-width', strokeWidth);
-                circle.setAttribute('fill', fill);
-                parent.appendChild(circle);
-                return circle;
-            }
+                static drawCircle(parent, cx, cy, r, stroke, strokeWidth, fill) {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', cx);
+                    circle.setAttribute('cy', cy);
+                    circle.setAttribute('r', r);
+                    circle.setAttribute('stroke', stroke);
+                    circle.setAttribute('stroke-width', strokeWidth);
+                    circle.setAttribute('fill', fill);
+                    parent.appendChild(circle);
+                    return circle;
+                }
 
-            const drawText = (parent, text, x, y, className) => {
-                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                textElement.textContent = text;
-                textElement.setAttribute('x', x - (text.length * 5));
-                textElement.setAttribute('y', y);
-                textElement.setAttribute('class', className);
-                parent.appendChild(textElement);
-                return textElement;
+                static drawText(parent, text, x, y, className) {
+                    const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    textElement.textContent = text;
+                    textElement.setAttribute('x', x - (text.length * 5));
+                    textElement.setAttribute('y', y);
+                    textElement.setAttribute('class', className);
+                    parent.appendChild(textElement);
+                    return textElement;
+                }
+
             }
 
             // --------------------------------------------------------
             // Draw keyboard
             // --------------------------------------------------------
 
-            const calculateKeyboardWidth = (fromNote, toNote, keyWidth) => {
-                const realFromNote = getNormalizedKeyboardKeyName(fromNote);
-                const realToNote = getNormalizedKeyboardKeyName(toNote);
-                let numWhiteKeys = 0;
-                let note = realFromNote, completed = false;
-                while (!completed) {
-                    const isWhiteKey = !hasSign(note);
-                    if (isWhiteKey) {
-                        numWhiteKeys++;
+            class KeyboardDrawer {
+
+                static setKeyboard(parent, fromNote, toNote, markedNotes, centerX, centerY, maxWidth, height) {
+                    let width = Infinity, keyWidth = height;
+                    while (width > maxWidth) {
+                        keyWidth = keyWidth * 0.9;
+                        width = KeyboardDrawer.calculateKeyboardWidth(fromNote, toNote, keyWidth);
                     }
-                    completed = (note === realToNote);
-                    note = getNextNormalizedKeyboardKeyName(note, 1);
+                    const leftX = centerX - (width / 2);
+                    const topY = centerY - (height / 2);
+                    KeyboardDrawer.drawKeyboard(parent, fromNote, toNote, markedNotes, leftX, topY, keyWidth, height);
                 }
-                let width = numWhiteKeys * keyWidth;
-                if (hasSign(realFromNote)) {
-                    width += (keyWidth / 2);
-                }
-                if (realFromNote != realToNote && hasSign(realToNote)) {
-                    width += (keyWidth / 2);
-                }
-                return width;
-            }
 
-            const setKeyboard = (parent, fromNote, toNote, markedNotes, centerX, centerY, maxWidth, height) => {
-                let width = Infinity, keyWidth = height;
-                while (width > maxWidth) {
-                    keyWidth = keyWidth * 0.9;
-                    width = calculateKeyboardWidth(fromNote, toNote, keyWidth);
-                }
-                const leftX = centerX - (width / 2);
-                const topY = centerY - (height / 2);
-                drawKeyboard(parent, fromNote, toNote, markedNotes, leftX, topY, keyWidth, height);
-            }
-
-            const drawKeyboardKey = (parent, centerX, topY, width, height, fill) => {
-                const x1 = centerX - (width / 2);
-                drawRectangle(parent, x1 , topY, width, height, 'black', 1, fill);
-            }
-
-            const drawKeyboard = (parent, fromNote, toNote, markedNotes, leftX, topY, keyWidth, keyHeight) => {
-                const realFromNote = getNormalizedKeyboardKeyName(fromNote);
-                const realToNote = getNormalizedKeyboardKeyName(toNote);
-                const normalizedMarkedNotes = markedNotes.map(getNormalizedKeyboardKeyName);
-                let keys = [[], []];
-                let note = realFromNote, x = leftX + (keyWidth / 2), completed = false;
-                while (!completed) {
-                    const isBlackKey = note.endsWith('#');
-                    const width = isBlackKey ? keyWidth * 0.6 : keyWidth;
-                    const height = isBlackKey ? keyHeight * 0.6 : keyHeight;
-                    let fill = isBlackKey ? 'black' : 'white';
-                    if (normalizedMarkedNotes.indexOf(note) >= 0) {
-                        fill = 'red';
+                static drawKeyboard(parent, fromNote, toNote, markedNotes, leftX, topY, keyWidth, keyHeight) {
+                    const realFromNote = getNormalizedKeyboardKeyName(fromNote);
+                    const realToNote = getNormalizedKeyboardKeyName(toNote);
+                    const normalizedMarkedNotes = markedNotes.map(getNormalizedKeyboardKeyName);
+                    let keys = [[], []];
+                    let note = realFromNote, x = leftX + (keyWidth / 2), completed = false;
+                    while (!completed) {
+                        const isBlackKey = note.endsWith('#');
+                        const width = isBlackKey ? keyWidth * 0.6 : keyWidth;
+                        const height = isBlackKey ? keyHeight * 0.6 : keyHeight;
+                        let fill = isBlackKey ? 'black' : 'white';
+                        if (normalizedMarkedNotes.indexOf(note) >= 0) {
+                            fill = 'red';
+                        }
+                        const key = {
+                            x: x,
+                            width: width,
+                            height: height,
+                            fill: fill
+                        };
+                        const index = isBlackKey ? 1 : 0;
+                        keys[index].push(key);
+                        completed = (note === realToNote);
+                        const stepSize = (note.charAt(0) === 'E' || note.charAt(0) === 'H') ? keyWidth : (keyWidth / 2);
+                        x += stepSize;
+                        note = getNextNormalizedKeyboardKeyName(note, 1);
                     }
-                    const key = {
-                        x: x,
-                        width: width,
-                        height: height,
-                        fill: fill
-                    };
-                    const index = isBlackKey ? 1 : 0;
-                    keys[index].push(key);
-                    completed = (note === realToNote);
-                    const stepSize = (note.charAt(0) === 'E' || note.charAt(0) === 'H') ? keyWidth : (keyWidth / 2);
-                    x += stepSize;
-                    note = getNextNormalizedKeyboardKeyName(note, 1);
-                }
-                for (let j = 0; j < keys.length; j++) {
-                    const keyList = keys[j];
-                    for (let i = 0; i < keyList.length; i++) {
-                        const key = keyList[i];
-                        drawKeyboardKey(parent, key.x, topY, key.width, key.height, key.fill);
+                    for (let j = 0; j < keys.length; j++) {
+                        const keyList = keys[j];
+                        for (let i = 0; i < keyList.length; i++) {
+                            const key = keyList[i];
+                            KeyboardDrawer.drawKeyboardKey(parent, key.x, topY, key.width, key.height, key.fill);
+                        }
                     }
                 }
+
+                static calculateKeyboardWidth(fromNote, toNote, keyWidth) {
+                    const realFromNote = getNormalizedKeyboardKeyName(fromNote);
+                    const realToNote = getNormalizedKeyboardKeyName(toNote);
+                    let numWhiteKeys = 0;
+                    let note = realFromNote, completed = false;
+                    while (!completed) {
+                        const isWhiteKey = !MusicCalculator.hasSign(note);
+                        if (isWhiteKey) {
+                            numWhiteKeys++;
+                        }
+                        completed = (note === realToNote);
+                        note = getNextNormalizedKeyboardKeyName(note, 1);
+                    }
+                    let width = numWhiteKeys * keyWidth;
+                    if (MusicCalculator.hasSign(realFromNote)) {
+                        width += (keyWidth / 2);
+                    }
+                    if (realFromNote != realToNote && MusicCalculator.hasSign(realToNote)) {
+                        width += (keyWidth / 2);
+                    }
+                    return width;
+                }
+
+                static drawKeyboardKey(parent, centerX, topY, width, height, fill) {
+                    const x1 = centerX - (width / 2);
+                    SvgDrawer.drawRectangle(parent, x1 , topY, width, height, 'black', 1, fill);
+                }
+
             }
 
             // --------------------------------------------------------
             // Draw musical symbols
             // --------------------------------------------------------
 
-            const drawStaff = (parent, properties, stroke) => {
-                for (let i = 0; i < 5; i++) {
-                    const y = properties.y1 + properties.lineDistance * i;
-                    const x2 = properties.x1 + properties.width;
-                    drawLine(parent, properties.x1, y, x2, y, stroke, 1);
+            class StaffDrawer {
+
+                static drawStaff(parent, properties, stroke) {
+                    for (let i = 0; i < 5; i++) {
+                        const y = properties.y1 + properties.lineDistance * i;
+                        const x2 = properties.x1 + properties.width;
+                        SvgDrawer.drawLine(parent, properties.x1, y, x2, y, stroke, 1);
+                    }
                 }
-            }
 
-            const drawMeasure = (parent, measure, x, staff) => {
-                const parts = measure.split('/');
-                drawText(parent, parts[0], x, staff.y1 + staff.lineDistance * 2, 'measure');
-                drawText(parent, parts[1], x, staff.y1 + staff.lineDistance * 4, 'measure');
-            }
-
-            const drawBar = (parent, x, staff) => {
-                const strokeWidth = staff.lineDistance / 5;
-                drawLine(parent, x, staff.y1, x, staff.y1 + staff.lineDistance * 4, 'black', strokeWidth);
-            }
-
-            const drawWholePause = (parent, x, staff, fill) => {
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                const width = staff.lineDistance;
-                const height = staff.lineDistance / 2;
-                const shiftedX = x - width / 2;
-                const y = staff.y1 + staff.lineDistance;
-                return drawRectangle(parent, shiftedX, y, width, height, 'black', 1, fill);
-            }
-
-            const drawHalfPause = (parent, x, staff, fill) => {
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                const width = staff.lineDistance;
-                const height = staff.lineDistance / 2;
-                const shiftedX = x - width / 2;
-                const y = staff.y1 + staff.lineDistance + height;
-                return drawRectangle(parent, shiftedX, y, width, height, 'black', 1, fill);
-            }
-
-            const drawQuarterPause = (parent, x, staff, fill) => {
-                const group = addGroup(parent, null);
-                const d = 'm 138.76116,462.5307 c -6.84377,8.15627 -10.26565,14.25001 -10.26562,18.28125 -3e-5,3.89063 3.25778,9.72656 9.77343,17.50781 l -2.03906,2.88282 c -3.28128,-1.92189 -6.09377,-2.88283 -8.4375,-2.88282 -3.04689,-10e-6 -4.57033,1.82811 -4.57031,5.48438 -2e-5,3.74998 1.66404,7.47654 4.99219,11.17969 l -1.82813,2.74218 c -9.23438,-6.84377 -13.85157,-12.93751 -13.85156,-18.28125 -1e-5,-2.71876 0.93749,-4.875 2.8125,-6.46875 1.73436,-1.5 3.98436,-2.25 6.75,-2.25 1.78123,0 3.74998,0.46875 5.90625,1.40625 l -14.13281,-18.77343 c 6.70311,-5.90624 10.05467,-11.24998 10.05468,-16.03125 -10e-6,-3.79685 -2.27345,-8.57809 -6.82031,-14.34375 l 5.625,0 16.03125,19.54687';
-                const path = drawPath(group, d, 'none', 0, fill);
-                const originalWidth = 26, originalHeight = 74;
-                const xShift = -50;
-                const yShift = -182;
-                const scale = 0.4;
-                path.setAttribute('transform', 'translate(' + xShift + ' ' + yShift + ') scale(' + scale + ' ' + scale + ')');
-                const y = staff.y1 + staff.lineDistance;
-                group.setAttribute('transform', 'translate(' + x + ' ' + y + ')');
-                return path;
-            }
-
-            const drawPauseTail = (parent, x, y, staff, fill) => {
-                const r = staff.lineDistance / 3;
-                const strokeWidth = staff.lineDistance / 5;
-                drawCircle(parent, x, y, r, 'black', 0, 'black');
-                const arcWidth = staff.lineDistance;
-                const arcHeight = staff.lineDistance * 0.5;
-                const x1 = x - r, y1 = y + arcHeight;
-                const x2 = x1 + arcWidth, y2 = y1;
-                const x3 = x2, y3 = y;
-                const d = 'M ' + x + ' ' + y + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + x3 + ' ' + y3;
-                drawPath(parent, d, 'black', strokeWidth, 'none');
-            }
-
-            const drawTailedPause = (parent, numTails, x, staff, fill) => {
-                let top = Infinity, right = -Infinity;
-                const tailPositions = [1, 2, 0, 3];
-                for (let i = 0; i < numTails; i++) {
-                    const position = tailPositions[i];
-                    const offset = position * staff.lineDistance + staff.lineDistance / 2;
-                    const shiftedX = x - position * staff.lineDistance * 0.2;
-                    const shiftedY = staff.y1 + offset;
-                    top = Math.min(top, shiftedY);
-                    right = Math.max(shiftedX + staff.lineDistance - 3, right);
-                    drawPauseTail(parent, shiftedX, shiftedY, staff, fill);
+                static drawMeasure(parent, measure, x, staff) {
+                    const parts = measure.split('/');
+                    SvgDrawer.drawText(parent, parts[0], x, staff.y1 + staff.lineDistance * 2, 'measure');
+                    SvgDrawer.drawText(parent, parts[1], x, staff.y1 + staff.lineDistance * 4, 'measure');
                 }
-                const strokeWidth = staff.lineDistance / 5;
-                const y = top;
-                drawLine(parent, right, top, x, y + staff.lineDistance * (numTails + 1), 'black', strokeWidth);
-            }
 
-            const drawPause = (parent, x, value, staff, fill) => {
-                const undotted = value.replace('.', '');
-                switch (undotted) {
-                    case '1/1':
-                        drawWholePause(parent, x, staff, fill);
-                        break;
-                    case '1/2':
-                        drawHalfPause(parent, x, staff, fill);
-                        break;
-                    case '1/4':
-                        drawQuarterPause(parent, x, staff, fill);
-                        break;
-                    case '1/8':
-                        drawTailedPause(parent, 1, x, staff, fill);
-                        break;
-                    case '1/16':
-                        drawTailedPause(parent, 2, x, staff, fill);
-                        break;
-                    case '1/32':
-                        drawTailedPause(parent, 3, x, staff, fill);
-                        break;
-                    case '1/64':
-                        drawTailedPause(parent, 4, x, staff, fill);
-                        break;
+                static drawBar(parent, x, staff) {
+                    const strokeWidth = staff.lineDistance / 5;
+                    SvgDrawer.drawLine(parent, x, staff.y1, x, staff.y1 + staff.lineDistance * 4, 'black', strokeWidth);
                 }
-                const dotted = value.endsWith('.');
-                if (dotted) {
-                    const shiftedX = x + staff.lineDistance * 1.4;
-                    const shiftedY = staff.y1 + staff.lineDistance * 1.5;
-                    drawDot(parent, shiftedX, shiftedY, staff);
+
+                static drawWholePause(parent, x, staff, fill) {
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    const width = staff.lineDistance;
+                    const height = staff.lineDistance / 2;
+                    const shiftedX = x - width / 2;
+                    const y = staff.y1 + staff.lineDistance;
+                    return SvgDrawer.drawRectangle(parent, shiftedX, y, width, height, 'black', 1, fill);
                 }
-            }
 
-            const drawDot = (parent, x, y, staff) => {
-                const r = staff.lineDistance / 5;
-                const strokeWidth = staff.lineDistance / 5;
-                return drawCircle(parent, x, y, r, 'black', strokeWidth, 'black');
-            }
-
-            const drawNoteHead = (parent, x, y, filled, staff) => {
-                const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-                const rx = staff.lineDistance / 1.8;
-                const ry = staff.lineDistance / 3;
-                const strokeWidth = staff.lineDistance / 5;
-                ellipse.setAttribute('cx', x);
-                ellipse.setAttribute('cy', y);
-                ellipse.setAttribute('rx', rx);
-                ellipse.setAttribute('ry', ry);
-                const fill = filled ? 'black' : 'none';
-                ellipse.setAttribute('fill', fill);
-                ellipse.setAttribute('stroke', 'black');
-                ellipse.setAttribute('stroke-width', strokeWidth);
-                ellipse.setAttribute('transform', 'rotate(-30 ' + x + ' ' + y + ')');
-                parent.appendChild(ellipse);
-                return ellipse;
-            }
-
-            const drawNoteStem = (parent, x, y, length, staff) => {
-                const xShiftDirection = length < 0 ? 1 : -1;
-                const xShiftAmount = staff.lineDistance / 2;
-                const xShift = xShiftDirection * xShiftAmount;
-                const shiftedX = x + xShift;
-                const yShift = length < 0 ? -1 : 1;
-                const startY = y + yShift;
-                const endY = y + length;
-                const strokeWidth = staff.lineDistance / 5;
-                return drawLine(parent, shiftedX, startY, shiftedX, endY, 'black', strokeWidth);
-            }
-
-            const drawNoteTail = (parent, x, y) => {
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const x1 = x + 7, y1 = y;
-                const x2 = x + 7, y2 = y + 5;
-                const d = 'M ' + x + ' ' + y + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + x2 + ' ' + y2;
-                drawPath(parent, d, 'black', 2, 'none');
-            }
-
-            const drawNoteTails = (parent, x, y, stemLength, numTails) => {
-                for (let i = 0; i < numTails; i++) {
-                    const xShift = stemLength < 0 ? 5.5 : -5.5;
-                    const tailX = x + xShift;
-                    const yShift = stemLength + 1 + i * 5;
-                    const tailY = y + yShift;
-                    drawNoteTail(parent, tailX, tailY);
+                static drawHalfPause(parent, x, staff, fill) {
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    const width = staff.lineDistance;
+                    const height = staff.lineDistance / 2;
+                    const shiftedX = x - width / 2;
+                    const y = staff.y1 + staff.lineDistance + height;
+                    return SvgDrawer.drawRectangle(parent, shiftedX, y, width, height, 'black', 1, fill);
                 }
-            }
 
-            const drawNote = (parent, x, y, value, addHelpLine, staff) => {
-                const denominator = parseInt(value = value.split('/')[1]);
-                const filled = denominator > 2;
-                const stemDirection = denominator > 1 ? -1 : 0;
-                const stemLength = stemDirection * staff.lineDistance * 4;
-                const numTails = Math.log2(denominator) - 2;
-                const dotted = value.endsWith('.');
-                if (dotted) {
-                    drawDot(parent, x + staff.lineDistance * 1.2, y, staff);
+                static drawQuarterPause(parent, x, staff, fill) {
+                    const group = SvgDrawer.addGroup(parent, null);
+                    const d = 'm 138.76116,462.5307 c -6.84377,8.15627 -10.26565,14.25001 -10.26562,18.28125 -3e-5,3.89063 3.25778,9.72656 9.77343,17.50781 l -2.03906,2.88282 c -3.28128,-1.92189 -6.09377,-2.88283 -8.4375,-2.88282 -3.04689,-10e-6 -4.57033,1.82811 -4.57031,5.48438 -2e-5,3.74998 1.66404,7.47654 4.99219,11.17969 l -1.82813,2.74218 c -9.23438,-6.84377 -13.85157,-12.93751 -13.85156,-18.28125 -1e-5,-2.71876 0.93749,-4.875 2.8125,-6.46875 1.73436,-1.5 3.98436,-2.25 6.75,-2.25 1.78123,0 3.74998,0.46875 5.90625,1.40625 l -14.13281,-18.77343 c 6.70311,-5.90624 10.05467,-11.24998 10.05468,-16.03125 -10e-6,-3.79685 -2.27345,-8.57809 -6.82031,-14.34375 l 5.625,0 16.03125,19.54687';
+                    const path = SvgDrawer.drawPath(group, d, 'none', 0, fill);
+                    const originalWidth = 26, originalHeight = 74;
+                    const xShift = -50;
+                    const yShift = -182;
+                    const scale = 0.4;
+                    path.setAttribute('transform', 'translate(' + xShift + ' ' + yShift + ') scale(' + scale + ' ' + scale + ')');
+                    const y = staff.y1 + staff.lineDistance;
+                    group.setAttribute('transform', 'translate(' + x + ' ' + y + ')');
+                    return path;
                 }
-                if (addHelpLine) {
-                    drawHelpLine(parent, x, y, staff);
+
+                static drawPauseTail(parent, x, y, staff, fill) {
+                    const r = staff.lineDistance / 3;
+                    const strokeWidth = staff.lineDistance / 5;
+                    SvgDrawer.drawCircle(parent, x, y, r, 'black', 0, 'black');
+                    const arcWidth = staff.lineDistance;
+                    const arcHeight = staff.lineDistance * 0.5;
+                    const x1 = x - r, y1 = y + arcHeight;
+                    const x2 = x1 + arcWidth, y2 = y1;
+                    const x3 = x2, y3 = y;
+                    const d = 'M ' + x + ' ' + y + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + x3 + ' ' + y3;
+                    SvgDrawer.drawPath(parent, d, 'black', strokeWidth, 'none');
                 }
-                drawNoteHead(parent, x, y, filled, staff);
-                if (stemLength != 0) {
-                    drawNoteStem(parent, x, y, stemLength, staff);
+
+                static drawTailedPause(parent, numTails, x, staff, fill) {
+                    let top = Infinity, right = -Infinity;
+                    const tailPositions = [1, 2, 0, 3];
+                    for (let i = 0; i < numTails; i++) {
+                        const position = tailPositions[i];
+                        const offset = position * staff.lineDistance + staff.lineDistance / 2;
+                        const shiftedX = x - position * staff.lineDistance * 0.2;
+                        const shiftedY = staff.y1 + offset;
+                        top = Math.min(top, shiftedY);
+                        right = Math.max(shiftedX + staff.lineDistance - 3, right);
+                        StaffDrawer.drawPauseTail(parent, shiftedX, shiftedY, staff, fill);
+                    }
+                    const strokeWidth = staff.lineDistance / 5;
+                    const y = top;
+                    SvgDrawer.drawLine(parent, right, top, x, y + staff.lineDistance * (numTails + 1), 'black', strokeWidth);
                 }
-                if (numTails > 0) {
-                    drawNoteTails(parent, x, y, stemLength, numTails);
+
+                static drawPause(parent, x, value, staff, fill) {
+                    const undotted = value.replace('.', '');
+                    switch (undotted) {
+                        case '1/1':
+                           StaffDrawer.drawWholePause(parent, x, staff, fill);
+                            break;
+                        case '1/2':
+                            StaffDrawer.drawHalfPause(parent, x, staff, fill);
+                            break;
+                        case '1/4':
+                            StaffDrawer.drawQuarterPause(parent, x, staff, fill);
+                            break;
+                        case '1/8':
+                            StaffDrawer.drawTailedPause(parent, 1, x, staff, fill);
+                            break;
+                        case '1/16':
+                            StaffDrawer.drawTailedPause(parent, 2, x, staff, fill);
+                            break;
+                        case '1/32':
+                            StaffDrawer.drawTailedPause(parent, 3, x, staff, fill);
+                            break;
+                        case '1/64':
+                            StaffDrawer.drawTailedPause(parent, 4, x, staff, fill);
+                            break;
+                    }
+                    const dotted = value.endsWith('.');
+                    if (dotted) {
+                        const shiftedX = x + staff.lineDistance * 1.4;
+                        const shiftedY = staff.y1 + staff.lineDistance * 1.5;
+                        StaffDrawer.drawDot(parent, shiftedX, shiftedY, staff);
+                    }
                 }
-            }
 
-            const drawHelpLine = (parent, x, y, staff) => {
-                const extent = staff.lineDistance;
-                drawLine(parent, x - extent, y, x + extent, y, 'black', 1);
-            }
-
-            const drawSignSharp = (parent, x, y, staff) => {
-                const offset = staff.lineDistance / 3, size = offset * 2, angleShift = 1, strokeWidth = staff.lineDistance / 5;
-                drawLine(parent, x - offset, y - size + (angleShift / 2), x - offset, y + size + (angleShift / 2), 'black', strokeWidth); // vertical left
-                drawLine(parent, x + offset, y - size - (angleShift / 2), x + offset, y + size - (angleShift / 2), 'black', strokeWidth); // vertical right
-                drawLine(parent, x - size, y - offset + angleShift, x + size, y - offset - angleShift, 'black', strokeWidth); // horizontal top
-                drawLine(parent, x - size, y + offset + angleShift, x + size, y + offset - angleShift, 'black', strokeWidth); // horizontal bottom
-            }
-
-            const drawSignFlat = (parent, x, y, staff) => {
-                const offset = staff.lineDistance / 2, xShift = offset * 0.4, stemSize = staff.lineDistance * 2, strokeWidth = staff.lineDistance / 5;
-                drawLine(parent, x - xShift, y - stemSize, x - xShift, y + offset, 'black', strokeWidth);
-                const startX = x - xShift, startY = y - offset;
-                const x1 = startX + 1.3 * offset, y1 = startY;
-                const x2 = x1, y2 = y + 0.2 * offset;
-                const endX = startX, endY = y + offset - 0.6;
-                const d = 'M ' + startX + ' '  + startY + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + endX + ' ' + endY;
-                drawPath(parent, d, 'black', strokeWidth, 'none');
-            }
-
-            const drawSign = (parent, x, y, sign, staff) => {
-                const signX = x - staff.lineDistance * 1.5;
-                switch (sign) {
-                    case '#':
-                        drawSignSharp(parent, signX, y, staff);
-                        break;
-                    case 'b', 'B':
-                        drawSignFlat(parent, signX, y, staff);
-                        break;
+                static drawDot(parent, x, y, staff) {
+                    const r = staff.lineDistance / 5;
+                    const strokeWidth = staff.lineDistance / 5;
+                    return SvgDrawer.drawCircle(parent, x, y, r, 'black', strokeWidth, 'black');
                 }
-            }
 
-            const drawTrebleClef = (parent, x, y, staff) => {
-                const d = 'm12.049 3.5296c0.305 3.1263-2.019 5.6563-4.0772 7.7014-0.9349 0.897-0.155 0.148-0.6437 0.594-0.1022-0.479-0.2986-1.731-0.2802-2.11 0.1304-2.6939 2.3198-6.5875 4.2381-8.0236 0.309 0.5767 0.563 0.6231 0.763 1.8382zm0.651 16.142c-1.232-0.906-2.85-1.144-4.3336-0.885-0.1913-1.255-0.3827-2.51-0.574-3.764 2.3506-2.329 4.9066-5.0322 5.0406-8.5394 0.059-2.232-0.276-4.6714-1.678-6.4836-1.7004 0.12823-2.8995 2.156-3.8019 3.4165-1.4889 2.6705-1.1414 5.9169-0.57 8.7965-0.8094 0.952-1.9296 1.743-2.7274 2.734-2.3561 2.308-4.4085 5.43-4.0046 8.878 0.18332 3.334 2.5894 6.434 5.8702 7.227 1.2457 0.315 2.5639 0.346 3.8241 0.099 0.2199 2.25 1.0266 4.629 0.0925 6.813-0.7007 1.598-2.7875 3.004-4.3325 2.192-0.5994-0.316-0.1137-0.051-0.478-0.252 1.0698-0.257 1.9996-1.036 2.26-1.565 0.8378-1.464-0.3998-3.639-2.1554-3.358-2.262 0.046-3.1904 3.14-1.7356 4.685 1.3468 1.52 3.833 1.312 5.4301 0.318 1.8125-1.18 2.0395-3.544 1.8325-5.562-0.07-0.678-0.403-2.67-0.444-3.387 0.697-0.249 0.209-0.059 1.193-0.449 2.66-1.053 4.357-4.259 3.594-7.122-0.318-1.469-1.044-2.914-2.302-3.792zm0.561 5.757c0.214 1.991-1.053 4.321-3.079 4.96-0.136-0.795-0.172-1.011-0.2626-1.475-0.4822-2.46-0.744-4.987-1.116-7.481 1.6246-0.168 3.4576 0.543 4.0226 2.184 0.244 0.577 0.343 1.197 0.435 1.812zm-5.1486 5.196c-2.5441 0.141-4.9995-1.595-5.6343-4.081-0.749-2.153-0.5283-4.63 0.8207-6.504 1.1151-1.702 2.6065-3.105 4.0286-4.543 0.183 1.127 0.366 2.254 0.549 3.382-2.9906 0.782-5.0046 4.725-3.215 7.451 0.5324 0.764 1.9765 2.223 2.7655 1.634-1.102-0.683-2.0033-1.859-1.8095-3.227-0.0821-1.282 1.3699-2.911 2.6513-3.198 0.4384 2.869 0.9413 6.073 1.3797 8.943-0.5054 0.1-1.0211 0.143-1.536 0.143z';
-                const path = drawPath(parent, d, 'black', 0, 'black');
-                const scale = staff.lineDistance / 6.25;
-                path.setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(' + scale + ' ' + scale + ')');
-            }
+                static drawNoteHead(parent, x, y, filled, staff) {
+                    const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                    const rx = staff.lineDistance / 1.8;
+                    const ry = staff.lineDistance / 3;
+                    const strokeWidth = staff.lineDistance / 5;
+                    ellipse.setAttribute('cx', x);
+                    ellipse.setAttribute('cy', y);
+                    ellipse.setAttribute('rx', rx);
+                    ellipse.setAttribute('ry', ry);
+                    const fill = filled ? 'black' : 'none';
+                    ellipse.setAttribute('fill', fill);
+                    ellipse.setAttribute('stroke', 'black');
+                    ellipse.setAttribute('stroke-width', strokeWidth);
+                    ellipse.setAttribute('transform', 'rotate(-30 ' + x + ' ' + y + ')');
+                    parent.appendChild(ellipse);
+                    return ellipse;
+                }
 
-            const drawBassClef = (parent, x, y, staff) => {
-                const clefGroup = addGroup(parent, null);
-                const cPath = drawPath(clefGroup, "M 243.97900,540.86798 C 244.02398,543.69258 242.76360,546.43815 240.76469,548.40449 C 238.27527,550.89277 235.01791,552.47534 231.69762,553.53261 C 231.25590,553.77182 230.58970,553.45643 231.28550,553.13144 C 232.62346,552.52289 234.01319,552.00050 235.24564,551.18080 C 237.96799,549.49750 240.26523,546.84674 240.82279,543.61854 C 241.14771,541.65352 241.05724,539.60795 240.56484,537.67852 C 240.20352,536.25993 239.22033,534.79550 237.66352,534.58587 C 236.25068,534.36961 234.74885,534.85905 233.74057,535.88093 C 233.47541,536.14967 232.95916,536.89403 233.04435,537.74747 C 233.64637,537.27468 233.60528,537.32732 234.09900,537.10717 C 235.23573,536.60031 236.74349,537.32105 237.02700,538.57272 C 237.32909,539.72295 237.09551,541.18638 235.96036,541.79960 C 234.77512,542.44413 233.02612,542.17738 232.36450,540.90866 C 231.26916,538.95418 231.87147,536.28193 233.64202,534.92571 C 235.44514,533.42924 238.07609,533.37089 240.19963,534.13862 C 242.38419,534.95111 243.68629,537.21483 243.89691,539.45694 C 243.95419,539.92492 243.97896,540.39668 243.97900,540.86798 z ", 'black', 0, 'black');
-                cPath.setAttribute('transform', 'translate(-240 -540)');
-                const upperDotPath = drawPath(clefGroup, "M 248.25999,536.80200 C 248.26766,537.17138 248.11044,537.54065 247.82878,537.78185 C 247.46853,538.11076 246.91933,538.17813 246.47048,538.01071 C 246.02563,537.83894 245.69678,537.39883 245.67145,536.92060 C 245.63767,536.54689 245.75685,536.15479 246.02747,535.88867 C 246.28257,535.61680 246.66244,535.48397 247.03147,535.50645 C 247.41131,535.51452 247.77805,535.70601 248.00489,536.01019 C 248.17962,536.23452 248.26238,536.51954 248.25999,536.80200 z ", 'black', 0, 'black');
-                upperDotPath.setAttribute('transform', 'translate(-240 -540)');
-                const lowerDotPath = drawPath(clefGroup, "M 248.25999,542.64502 C 248.26772,543.01469 248.11076,543.38446 247.82878,543.62585 C 247.46853,543.95476 246.91933,544.02213 246.47048,543.85472 C 246.02537,543.68288 245.69655,543.24237 245.67145,542.76389 C 245.63651,542.38990 245.76354,542.00308 246.02700,541.73300 C 246.27663,541.45454 246.66060,541.32790 247.02845,541.34950 C 247.51230,541.36282 247.95159,541.69251 248.15162,542.12465 C 248.22565,542.28740 248.26043,542.46657 248.25999,542.64502 z ", 'black', 0, 'black')
-                lowerDotPath.setAttribute('transform', 'translate(-240 -540)');
-                const scale = staff.lineDistance / 5.5;
-                clefGroup.setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(' + scale + ' ' + scale + ')');
+                static drawNoteStem(parent, x, y, length, staff) {
+                    const xShiftDirection = length < 0 ? 1 : -1;
+                    const xShiftAmount = staff.lineDistance / 2;
+                    const xShift = xShiftDirection * xShiftAmount;
+                    const shiftedX = x + xShift;
+                    const yShift = length < 0 ? -1 : 1;
+                    const startY = y + yShift;
+                    const endY = y + length;
+                    const strokeWidth = staff.lineDistance / 5;
+                    return SvgDrawer.drawLine(parent, shiftedX, startY, shiftedX, endY, 'black', strokeWidth);
+                }
+
+                static drawNoteTail(parent, x, y) {
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const x1 = x + 7, y1 = y;
+                    const x2 = x + 7, y2 = y + 5;
+                    const d = 'M ' + x + ' ' + y + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + x2 + ' ' + y2;
+                    SvgDrawer.drawPath(parent, d, 'black', 2, 'none');
+                }
+
+                static drawNoteTails(parent, x, y, stemLength, numTails) {
+                    for (let i = 0; i < numTails; i++) {
+                        const xShift = stemLength < 0 ? 5.5 : -5.5;
+                        const tailX = x + xShift;
+                        const yShift = stemLength + 1 + i * 5;
+                        const tailY = y + yShift;
+                        StaffDrawer.drawNoteTail(parent, tailX, tailY);
+                    }
+                }
+
+                static drawNote(parent, x, y, value, addHelpLine, staff) {
+                    const denominator = parseInt(value = value.split('/')[1]);
+                    const filled = denominator > 2;
+                    const stemDirection = denominator > 1 ? -1 : 0;
+                    const stemLength = stemDirection * staff.lineDistance * 4;
+                    const numTails = Math.log2(denominator) - 2;
+                    const dotted = value.endsWith('.');
+                    if (dotted) {
+                        StaffDrawer.drawDot(parent, x + staff.lineDistance * 1.2, y, staff);
+                    }
+                    if (addHelpLine) {
+                        StaffDrawer.drawHelpLine(parent, x, y, staff);
+                    }
+                    StaffDrawer.drawNoteHead(parent, x, y, filled, staff);
+                    if (stemLength != 0) {
+                        StaffDrawer.drawNoteStem(parent, x, y, stemLength, staff);
+                    }
+                    if (numTails > 0) {
+                        StaffDrawer.drawNoteTails(parent, x, y, stemLength, numTails);
+                    }
+                }
+
+                static drawHelpLine(parent, x, y, staff) {
+                    const extent = staff.lineDistance;
+                    SvgDrawer.drawLine(parent, x - extent, y, x + extent, y, 'black', 1);
+                }
+
+                static drawSignSharp(parent, x, y, staff) {
+                    const offset = staff.lineDistance / 3, size = offset * 2, angleShift = 1, strokeWidth = staff.lineDistance / 5;
+                    SvgDrawer.drawLine(parent, x - offset, y - size + (angleShift / 2), x - offset, y + size + (angleShift / 2), 'black', strokeWidth); // vertical left
+                    SvgDrawer.drawLine(parent, x + offset, y - size - (angleShift / 2), x + offset, y + size - (angleShift / 2), 'black', strokeWidth); // vertical right
+                    SvgDrawer.drawLine(parent, x - size, y - offset + angleShift, x + size, y - offset - angleShift, 'black', strokeWidth); // horizontal top
+                    SvgDrawer.drawLine(parent, x - size, y + offset + angleShift, x + size, y + offset - angleShift, 'black', strokeWidth); // horizontal bottom
+                }
+
+                static drawSignFlat(parent, x, y, staff) {
+                    const offset = staff.lineDistance / 2, xShift = offset * 0.4, stemSize = staff.lineDistance * 2, strokeWidth = staff.lineDistance / 5;
+                    SvgDrawer.drawLine(parent, x - xShift, y - stemSize, x - xShift, y + offset, 'black', strokeWidth);
+                    const startX = x - xShift, startY = y - offset;
+                    const x1 = startX + 1.3 * offset, y1 = startY;
+                    const x2 = x1, y2 = y + 0.2 * offset;
+                    const endX = startX, endY = y + offset - 0.6;
+                    const d = 'M ' + startX + ' '  + startY + ' C ' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' ' + endX + ' ' + endY;
+                    SvgDrawer.drawPath(parent, d, 'black', strokeWidth, 'none');
+                }
+
+                static drawSign(parent, x, y, sign, staff) {
+                    const signX = x - staff.lineDistance * 1.5;
+                    switch (sign) {
+                        case '#':
+                            StaffDrawer.drawSignSharp(parent, signX, y, staff);
+                            break;
+                        case 'b', 'B':
+                            StaffDrawer.drawSignFlat(parent, signX, y, staff);
+                            break;
+                    }
+                }
+
+                static drawTrebleClef(parent, x, y, staff) {
+                    const d = 'm12.049 3.5296c0.305 3.1263-2.019 5.6563-4.0772 7.7014-0.9349 0.897-0.155 0.148-0.6437 0.594-0.1022-0.479-0.2986-1.731-0.2802-2.11 0.1304-2.6939 2.3198-6.5875 4.2381-8.0236 0.309 0.5767 0.563 0.6231 0.763 1.8382zm0.651 16.142c-1.232-0.906-2.85-1.144-4.3336-0.885-0.1913-1.255-0.3827-2.51-0.574-3.764 2.3506-2.329 4.9066-5.0322 5.0406-8.5394 0.059-2.232-0.276-4.6714-1.678-6.4836-1.7004 0.12823-2.8995 2.156-3.8019 3.4165-1.4889 2.6705-1.1414 5.9169-0.57 8.7965-0.8094 0.952-1.9296 1.743-2.7274 2.734-2.3561 2.308-4.4085 5.43-4.0046 8.878 0.18332 3.334 2.5894 6.434 5.8702 7.227 1.2457 0.315 2.5639 0.346 3.8241 0.099 0.2199 2.25 1.0266 4.629 0.0925 6.813-0.7007 1.598-2.7875 3.004-4.3325 2.192-0.5994-0.316-0.1137-0.051-0.478-0.252 1.0698-0.257 1.9996-1.036 2.26-1.565 0.8378-1.464-0.3998-3.639-2.1554-3.358-2.262 0.046-3.1904 3.14-1.7356 4.685 1.3468 1.52 3.833 1.312 5.4301 0.318 1.8125-1.18 2.0395-3.544 1.8325-5.562-0.07-0.678-0.403-2.67-0.444-3.387 0.697-0.249 0.209-0.059 1.193-0.449 2.66-1.053 4.357-4.259 3.594-7.122-0.318-1.469-1.044-2.914-2.302-3.792zm0.561 5.757c0.214 1.991-1.053 4.321-3.079 4.96-0.136-0.795-0.172-1.011-0.2626-1.475-0.4822-2.46-0.744-4.987-1.116-7.481 1.6246-0.168 3.4576 0.543 4.0226 2.184 0.244 0.577 0.343 1.197 0.435 1.812zm-5.1486 5.196c-2.5441 0.141-4.9995-1.595-5.6343-4.081-0.749-2.153-0.5283-4.63 0.8207-6.504 1.1151-1.702 2.6065-3.105 4.0286-4.543 0.183 1.127 0.366 2.254 0.549 3.382-2.9906 0.782-5.0046 4.725-3.215 7.451 0.5324 0.764 1.9765 2.223 2.7655 1.634-1.102-0.683-2.0033-1.859-1.8095-3.227-0.0821-1.282 1.3699-2.911 2.6513-3.198 0.4384 2.869 0.9413 6.073 1.3797 8.943-0.5054 0.1-1.0211 0.143-1.536 0.143z';
+                    const path = SvgDrawer.drawPath(parent, d, 'black', 0, 'black');
+                    const scale = staff.lineDistance / 6.25;
+                    path.setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(' + scale + ' ' + scale + ')');
+                }
+
+                static drawBassClef(parent, x, y, staff) {
+                    const clefGroup = SvgDrawer.addGroup(parent, null);
+                    const cPath = SvgDrawer.drawPath(clefGroup, "M 243.97900,540.86798 C 244.02398,543.69258 242.76360,546.43815 240.76469,548.40449 C 238.27527,550.89277 235.01791,552.47534 231.69762,553.53261 C 231.25590,553.77182 230.58970,553.45643 231.28550,553.13144 C 232.62346,552.52289 234.01319,552.00050 235.24564,551.18080 C 237.96799,549.49750 240.26523,546.84674 240.82279,543.61854 C 241.14771,541.65352 241.05724,539.60795 240.56484,537.67852 C 240.20352,536.25993 239.22033,534.79550 237.66352,534.58587 C 236.25068,534.36961 234.74885,534.85905 233.74057,535.88093 C 233.47541,536.14967 232.95916,536.89403 233.04435,537.74747 C 233.64637,537.27468 233.60528,537.32732 234.09900,537.10717 C 235.23573,536.60031 236.74349,537.32105 237.02700,538.57272 C 237.32909,539.72295 237.09551,541.18638 235.96036,541.79960 C 234.77512,542.44413 233.02612,542.17738 232.36450,540.90866 C 231.26916,538.95418 231.87147,536.28193 233.64202,534.92571 C 235.44514,533.42924 238.07609,533.37089 240.19963,534.13862 C 242.38419,534.95111 243.68629,537.21483 243.89691,539.45694 C 243.95419,539.92492 243.97896,540.39668 243.97900,540.86798 z ", 'black', 0, 'black');
+                    cPath.setAttribute('transform', 'translate(-240 -540)');
+                    const upperDotPath = SvgDrawer.drawPath(clefGroup, "M 248.25999,536.80200 C 248.26766,537.17138 248.11044,537.54065 247.82878,537.78185 C 247.46853,538.11076 246.91933,538.17813 246.47048,538.01071 C 246.02563,537.83894 245.69678,537.39883 245.67145,536.92060 C 245.63767,536.54689 245.75685,536.15479 246.02747,535.88867 C 246.28257,535.61680 246.66244,535.48397 247.03147,535.50645 C 247.41131,535.51452 247.77805,535.70601 248.00489,536.01019 C 248.17962,536.23452 248.26238,536.51954 248.25999,536.80200 z ", 'black', 0, 'black');
+                    upperDotPath.setAttribute('transform', 'translate(-240 -540)');
+                    const lowerDotPath = SvgDrawer.drawPath(clefGroup, "M 248.25999,542.64502 C 248.26772,543.01469 248.11076,543.38446 247.82878,543.62585 C 247.46853,543.95476 246.91933,544.02213 246.47048,543.85472 C 246.02537,543.68288 245.69655,543.24237 245.67145,542.76389 C 245.63651,542.38990 245.76354,542.00308 246.02700,541.73300 C 246.27663,541.45454 246.66060,541.32790 247.02845,541.34950 C 247.51230,541.36282 247.95159,541.69251 248.15162,542.12465 C 248.22565,542.28740 248.26043,542.46657 248.25999,542.64502 z ", 'black', 0, 'black')
+                    lowerDotPath.setAttribute('transform', 'translate(-240 -540)');
+                    const scale = staff.lineDistance / 5.5;
+                    clefGroup.setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(' + scale + ' ' + scale + ')');
+                }
+
             }
 
             // --------------------------------------------------------
             // Layout music symbols
             // --------------------------------------------------------
             
-            const setNote = (parent, note, value, x, staff, clef) => {
-                const nodeGroup = addGroup(parent, 'note-' + [note, value, x].join('-'));
-                setHelpLines(parent, note, x, staff, clef);
-                const y = calculateNoteY(note, staff, clef);
-                drawNote(nodeGroup, x, y, value, false, staff);
-                if (note.length > 2) {
-                    for (let i = 2; i < note.length; i++) {
-                        const sign = note.charAt(i);
-                        const xShift = x - (i - 2) * staff.lineDistance * 1.2;
-                        drawSign(nodeGroup, xShift, y, sign, staff);
+            class StaffLayouter {
+
+                static setNote(parent, note, value, x, staff, clef) {
+                    const nodeGroup = SvgDrawer.addGroup(parent, 'note-' + [note, value, x].join('-'));
+                    StaffLayouter.setHelpLines(parent, note, x, staff, clef);
+                    const y = MusicCalculator.calculateNoteY(note, staff, clef);
+                    StaffDrawer.drawNote(nodeGroup, x, y, value, false, staff);
+                    if (note.length > 2) {
+                        for (let i = 2; i < note.length; i++) {
+                            const sign = note.charAt(i);
+                            const xShift = x - (i - 2) * staff.lineDistance * 1.2;
+                            StaffDrawer.drawSign(nodeGroup, xShift, y, sign, staff);
+                        }
                     }
+                    return nodeGroup;
                 }
-                return nodeGroup;
-            }
 
-            const setPause = (parent, value, x, staff, clef) => {
-                const pauseGroup = addGroup(parent, 'pause-' + [value, x].join('-'));
-                drawPause(pauseGroup, x, value, staff, 'black');
-                return pauseGroup;
-            }
-
-            const setChord = (parent, notes, value, x, staff, clef) => {
-                const chordGroup = addGroup(parent, 'chord-' + [notes.join('-'), value, x].join('-'));
-                const helpLines = determineRequiredHelpLines(notes, clef);
-                helpLines.forEach(note => setHelpLine(chordGroup, note, x, staff, clef));
-                for (let i = 0; i < notes.length; i++) {
-                    const note = notes[i];
-                    const modifiedNote = note.substring(0, 2);
-                    const isLast = i === notes.length - 1;
-                    const modifiedValue = isLast ? value : reducetoTaillessValue(value);
-                    setNote(chordGroup, modifiedNote, modifiedValue, x, staff, clef);
+                static setPause(parent, value, x, staff, clef) {
+                    const pauseGroup = SvgDrawer.addGroup(parent, 'pause-' + [value, x].join('-'));
+                    StaffDrawer.drawPause(pauseGroup, x, value, staff, 'black');
+                    return pauseGroup;
                 }
-                const signedNotes = notes.filter(note => note.length > 2);
-                for (let i = 0; i < signedNotes.length; i++) {
-                    const note = signedNotes[i];
-                    const modifiedX = x - ((i % 2) * 10) - (signedNotes.length - i);
-                    setSign(chordGroup, note, modifiedX, staff, clef);
-                }
-                return chordGroup;
-            }
 
-            const setClef = (parent, clef, x, staff) => {
-                const clefGroup = addGroup(parent, "clef-" + clef + "-" + x);
-                switch(clef) {
-                    case "treble":
-                        drawTrebleClef(clefGroup, x - 15, staff.y1 - staff.lineDistance, staff);
-                        break;
-                    case "bass":
-                        const xShift = 1.6 * staff.lineDistance - 16;
-                        drawBassClef(clefGroup, x + xShift, staff.y1 + staff.lineDistance, staff);
-                        break;
-                }
-            }
-
-                        const setHelpLine = (parent, note, x, staff, clef) => {
-                const y = calculateNoteY(note, staff, clef);
-                drawHelpLine(parent, x, y, staff);
-            }
-
-            const setHelpLines = (parent, note, x, staff, clef) => {
-                const helpLines = determineRequiredHelpLines([note], clef);
-                helpLines.forEach(helpLine => setHelpLine(parent, helpLine, x, staff, clef));
-            }
-
-            const setSign = (parent, note, x, staff, clef) => {
-                if (note.length > 2) {
-                    const signGroup = addGroup(parent, 'sign-' + note);
-                    const y = calculateNoteY(note, staff, clef);
-                    for (let i = 2; i < note.length; i++) {
-                        const sign = note.charAt(i);
-                        const xShift = x - (i - 2) * staff.lineDistance * 1.2;
-                        drawSign(signGroup, xShift, y, sign, staff);
+                static setChord(parent, notes, value, x, staff, clef) {
+                    const chordGroup = SvgDrawer.addGroup(parent, 'chord-' + [notes.join('-'), value, x].join('-'));
+                    const helpLines = MusicCalculator.determineRequiredHelpLines(notes, clef);
+                    helpLines.forEach(note => StaffLayouter.setHelpLine(chordGroup, note, x, staff, clef));
+                    for (let i = 0; i < notes.length; i++) {
+                        const note = notes[i];
+                        const modifiedNote = note.substring(0, 2);
+                        const isLast = i === notes.length - 1;
+                        const modifiedValue = isLast ? value : MusicCalculator.reducetoTaillessValue(value);
+                        StaffLayouter.setNote(chordGroup, modifiedNote, modifiedValue, x, staff, clef);
                     }
+                    const signedNotes = notes.filter(note => note.length > 2);
+                    for (let i = 0; i < signedNotes.length; i++) {
+                        const note = signedNotes[i];
+                        const modifiedX = x - ((i % 2) * 10) - (signedNotes.length - i);
+                        StaffLayouter.setSign(chordGroup, note, modifiedX, staff, clef);
+                    }
+                    return chordGroup;
                 }
-            }
 
-            const setMusicDiagram = (parent, content) => {
-                let elementWidth = 50, width = Infinity;
-                while (width > 300) {
-                    elementWidth *= 0.9;
-                    width = content.length * elementWidth;
-                }
-                const x1 = (300 - width ) / 2;
-                const staff = { x1: x1, y1: 50, width: width, lineDistance: 10 };
-                drawStaff(parent, staff, 'gray');
-                let clef = null;
-                for (let i = 0; i < content.length; i++) {
-                    const x = x1 + elementWidth / 2 + i * elementWidth;
-                    const element = content[i];
-                    const usedClef = !!clef ? clef : 'treble';
-                    switch (element.element) {
-                        case "clef":
-                            clef = element.type;
-                            setClef(parent, element.type, x, staff);
+                static setClef(parent, clef, x, staff) {
+                    const clefGroup = SvgDrawer.addGroup(parent, "clef-" + clef + "-" + x);
+                    switch(clef) {
+                        case "treble":
+                            StaffDrawer.drawTrebleClef(clefGroup, x - 15, staff.y1 - staff.lineDistance, staff);
                             break;
-                        case "chord":
-                            setChord(parent, element.notes, element.value, x, staff, usedClef);
-                            break;
-                        case "note":
-                            setNote(parent, element.note, element.value, x, staff, usedClef);
-                            break;
-                        case "pause":
-                            setPause(parent, element.value, x, staff);
-                            break;
-                        case "measure":
-                            drawMeasure(parent, element.measure, x, staff);
-                            break;
-                        case 'bar':
-                            drawBar(parent, x, staff);
-                            break;
-                        case 'text':
-                            drawText(parent, element.text, x, staff.y1 + staff.lineDistance * 3.5, 'textElement');
+                        case "bass":
+                            const xShift = 1.6 * staff.lineDistance - 16;
+                            StaffDrawer.drawBassClef(clefGroup, x + xShift, staff.y1 + staff.lineDistance, staff);
                             break;
                     }
                 }
+
+                static setHelpLine(parent, note, x, staff, clef) {
+                    const y = MusicCalculator.calculateNoteY(note, staff, clef);
+                    StaffDrawer.drawHelpLine(parent, x, y, staff);
+                }
+
+                static setHelpLines(parent, note, x, staff, clef) {
+                    const helpLines = MusicCalculator.determineRequiredHelpLines([note], clef);
+                    helpLines.forEach(helpLine => StaffLayouter.setHelpLine(parent, helpLine, x, staff, clef));
+                }
+
+                static setSign(parent, note, x, staff, clef) {
+                    if (note.length > 2) {
+                        const signGroup = SvgDrawer.addGroup(parent, 'sign-' + note);
+                        const y = MusicCalculator.calculateNoteY(note, staff, clef);
+                        for (let i = 2; i < note.length; i++) {
+                            const sign = note.charAt(i);
+                            const xShift = x - (i - 2) * staff.lineDistance * 1.2;
+                            StaffDrawer.drawSign(signGroup, xShift, y, sign, staff);
+                        }
+                    }
+                }
+
+                static setMusicDiagram(parent, content) {
+                    let elementWidth = 50, width = Infinity;
+                    while (width > 300) {
+                        elementWidth *= 0.9;
+                        width = content.length * elementWidth;
+                    }
+                    const x1 = (300 - width ) / 2;
+                    const staff = { x1: x1, y1: 50, width: width, lineDistance: 10 };
+                    StaffDrawer.drawStaff(parent, staff, 'gray');
+                    let clef = null;
+                    for (let i = 0; i < content.length; i++) {
+                        const x = x1 + elementWidth / 2 + i * elementWidth;
+                        const element = content[i];
+                        const usedClef = !!clef ? clef : 'treble';
+                        switch (element.element) {
+                            case "clef":
+                                clef = element.type;
+                                StaffLayouter.setClef(parent, element.type, x, staff);
+                                break;
+                            case "chord":
+                                StaffLayouter.setChord(parent, element.notes, element.value, x, staff, usedClef);
+                                break;
+                            case "note":
+                                StaffLayouter.setNote(parent, element.note, element.value, x, staff, usedClef);
+                                break;
+                            case "pause":
+                                StaffLayouter.setPause(parent, element.value, x, staff);
+                                break;
+                            case "measure":
+                                StaffDrawer.drawMeasure(parent, element.measure, x, staff);
+                                break;
+                            case 'bar':
+                                StaffDrawer.drawBar(parent, x, staff);
+                                break;
+                            case 'text':
+                                SvgDrawer.drawText(parent, element.text, x, staff.y1 + staff.lineDistance * 3.5, 'textElement');
+                                break;
+                        }
+                    }
+                }
+
             }
 
             // --------------------------------------------------------
             // Randomizing basics
             // --------------------------------------------------------
 
-            const randomizeNumberBetween = (min, max) => { // min and max included 
-                return Math.floor(Math.random() * (max - min + 1) + min);
-            }
+            class Randomizer {
 
-            const getRandomElementFrom = (array) => {
-                const index = randomizeNumberBetween(0, array.length - 1);
-                return array[index];
-            }
-
-            const removeRandomElementFrom = (array) => {
-                const index = randomizeNumberBetween(0, array.length - 1);
-                const element = array[index];
-                const rest = array.slice(0, index).concat(array.slice(index + 1));
-                const result = {
-                    element: element,
-                    rest: rest
+                static randomizeNumberBetween(min, max) { // min and max included 
+                    return Math.floor(Math.random() * (max - min + 1) + min);
                 }
-                return result;
-            }
 
-            const getRandomElementsFrom = (array, num) => {
-                let rest = JSON.parse(JSON.stringify(array));
-                let result = [];
-                while (result.length < num && rest.length > 0) {
-                    const remainder = removeRandomElementFrom(rest);
-                    result.push(remainder.element);
-                    rest = remainder.rest;
+                static getRandomElementFrom(array) {
+                    const index = Randomizer.randomizeNumberBetween(0, array.length - 1);
+                    return array[index];
                 }
-                return result;
+
+                static removeRandomElementFrom(array) {
+                    const index = Randomizer.randomizeNumberBetween(0, array.length - 1);
+                    const element = array[index];
+                    const rest = array.slice(0, index).concat(array.slice(index + 1));
+                    const result = {
+                        element: element,
+                        rest: rest
+                    }
+                    return result;
+                }
+
+                static getRandomElementsFrom(array, num) {
+                    let rest = JSON.parse(JSON.stringify(array));
+                    let result = [];
+                    while (result.length < num && rest.length > 0) {
+                        const remainder = Randomizer.removeRandomElementFrom(rest);
+                        result.push(remainder.element);
+                        rest = remainder.rest;
+                    }
+                    return result;
+                }
+
+                static getSuccessiveRandomElementsFrom(array, num) {
+                    const index = Randomizer.randomizeNumberBetween(0, array.length - num);
+                    const result = array.slice(index, index + num);
+                    return result;
+                }
+
             }
 
             // --------------------------------------------------------
             // Randomizing musical elements
             // --------------------------------------------------------
 
-            const randomizeNoteBetween = (min, max, signs) => {
-                const allOctaveNotes = getAllOctaveNotes();
-                const minIndex = allOctaveNotes.indexOf(min);
-                const maxIndex = allOctaveNotes.indexOf(max);
-                const index = randomizeNumberBetween(minIndex, maxIndex);
-                const note = allOctaveNotes[index];
-                const randomSign = getRandomElementFrom(signs);
-                const result = note + randomSign;
-                return result;
-            }
+            class MusicRandomizer {
 
-            const randomizeNote = () => {
-                const octaveNotes = getOctaveNotes(), octaves = [3, 4, 5, 6], signs = ['', '#', 'B'];
-                const randomNote = getRandomElementFrom(octaveNotes);
-                const randomOctave = getRandomElementFrom(octaves);
-                const randomSign = getRandomElementFrom(signs);
-                const result = randomNote + randomOctave + randomSign;
-                return result;
-            }
-
-            const randomizeTriad = (noteRange) => {
-                return randomizeChord(noteRange, ['', '#', 'B'], ['major', 'minor']);
-            }
-
-            const randomizeChord = (noteRange, signs, types) => {
-                const baseNote = randomizeNoteBetween(noteRange[0], noteRange[1], signs);
-                const chordType = getRandomElementFrom(types);
-                const result = {
-                    baseNote: baseNote,
-                    chordType: chordType
+                static randomizeNoteBetween(min, max, signs) {
+                    const allOctaveNotes = MusicCalculator.getAllOctaveNotes();
+                    const minIndex = allOctaveNotes.indexOf(min);
+                    const maxIndex = allOctaveNotes.indexOf(max);
+                    const index = Randomizer.randomizeNumberBetween(minIndex, maxIndex);
+                    const note = allOctaveNotes[index];
+                    const randomSign = Randomizer.getRandomElementFrom(signs);
+                    const result = note + randomSign;
+                    return result;
                 }
-                return result;
-            }
 
-            const randomizeInterval = (range) => {
-                let interval = null, note1 = null, note2 = null;
-                while (!interval) {
-                    const signs = getRandomElementFrom([['', '#'], ['', 'B']]);
-                    note1 = randomizeNoteBetween(range[0], range[1], signs);
-                    note2 = randomizeNoteBetween(range[0], range[1], signs);
-                    interval = calculateIntervalName(note1, note2);
+                static randomizeTriad(noteRange) {
+                    return MusicRandomizer.randomizeChord(noteRange, ['', '#', 'B'], ['major', 'minor']);
                 }
-                const result = {
-                    name: interval,
-                    note1: note1,
-                    note2: note2
+
+                static randomizeChord(noteRange, signs, types) {
+                    const baseNote = MusicRandomizer.randomizeNoteBetween(noteRange[0], noteRange[1], signs);
+                    const chordType = Randomizer.getRandomElementFrom(types);
+                    const result = {
+                        baseNote: baseNote,
+                        chordType: chordType
+                    }
+                    return result;
                 }
-                return result;
+
+                static randomizeInterval(range) {
+                    let interval = null, note1 = null, note2 = null;
+                    while (!interval) {
+                        const signs = Randomizer.getRandomElementFrom([['', '#'], ['', 'B']]);
+                        note1 = MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs);
+                        note2 = MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs);
+                        interval = calculateIntervalName(note1, note2);
+                    }
+                    const result = {
+                        name: interval,
+                        note1: note1,
+                        note2: note2
+                    }
+                    return result;
+                }
+
+                static randomizeMelody(measure, fromNote, toNote, signs, values) {
+                    let randomValues = [], remainder = countSixtyFourthsInMeasure(measure);
+                    while (remainder > 0) {
+                        const possibleValues = values.filter(value => countSixtyFourthsInValue(value) <= remainder);
+                        const next = Randomizer.getRandomElementFrom(possibleValues);
+                        const length = countSixtyFourthsInValue(next);
+                        randomValues.push(next);
+                        remainder -= length;
+                    }
+                    let result = [];
+                    for (let i = 0; i < randomValues.length; i++) {
+                        const value = randomValues[i];
+                        const type = Randomizer.getRandomElementFrom(['note', 'pause']);
+                        const note = type === 'note' ? MusicRandomizer.randomizeNoteBetween(fromNote, toNote, signs) : undefined;
+                        const element = {
+                            element: type,
+                            value: value,
+                            note: note
+                        }
+                        result.push(element);
+                    }
+                    return result;
+                }
+
             }
 
             // --------------------------------------------------------
             // Musical calculations
             // --------------------------------------------------------
 
-            const hasSign = (note) => {
-                return note.length > 2;
-            }
+            class MusicCalculator {
 
-            const getOctaveNotes = () => {
-                return ['C', 'D', 'E', 'F', 'G', 'A', 'H'];
-            }
-
-            const getAllOctaveNotes = () => {
-                const octaveNotes = getOctaveNotes();
-                return [0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap(octave => octaveNotes.map(note => note + octave));
-            }
-
-            const determineReferenceNote = (clef) => {
-                switch(clef) {
-                    case "treble":
-                        return { note: 'G4', shift: 6 };
-                    case "bass":
-                        return { note: 'F3', shift: 2 };
+                static hasSign(note) {
+                    return note.length > 2;
                 }
-            }
 
-            const calculateRelativeShift = (note, base) => {
-                const octaveNotes = getOctaveNotes();
-                const octaveDiff = parseInt(note.charAt(1)) - parseInt(base.charAt(1));
-                const octaveShift = -7 * octaveDiff;
-                const noteDiff = octaveNotes.indexOf(note.charAt(0)) - octaveNotes.indexOf(base.charAt(0));
-                const noteShift = -1 * noteDiff;
-                const result = octaveShift + noteShift;
-                return result;
-            }
+                static getOctaveNotes(){
+                    return ['C', 'D', 'E', 'F', 'G', 'A', 'H'];
+                }
 
-            const calculateNoteShift = (note, clef) => {
-                const referenceNote = determineReferenceNote(clef);
-                const relativeShift = calculateRelativeShift(note, referenceNote.note);
-                const result = relativeShift + referenceNote.shift;
-                return result;
-            }
+                static getAllOctaveNotes() {
+                    const octaveNotes = MusicCalculator.getOctaveNotes();
+                    return [0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap(octave => octaveNotes.map(note => note + octave));
+                }
 
-            const calculateNoteAtShift = (shift, clef) => {
-                const allOctaveNotes = getAllOctaveNotes();
-                const referenceNote = determineReferenceNote(clef);
-                const baseNoteIndex = allOctaveNotes.indexOf(referenceNote.note);
-                const relativeShift = shift - referenceNote.shift;
-                const noteIndex = baseNoteIndex - relativeShift;
-                const result = allOctaveNotes[noteIndex];
-                return result;
-            }
+                static getMinNote(a, b) {
+                    const valA = MusicCalculator.calculateHalfTone(a);
+                    const valB = MusicCalculator.calculateHalfTone(b);
+                    const result = valA <= valB ? a : b;
+                    return result;
+                }
 
-            const calculateNoteY = (note, staff, clef) => {
-                const shift = calculateNoteShift(note, clef);
-                return staff.y1 + shift * (staff.lineDistance / 2);
-            }
+                static getMaxNote(a, b) {
+                    const valA = MusicCalculator.calculateHalfTone(a);
+                    const valB = MusicCalculator.calculateHalfTone(b);
+                    const result = valA >= valB ? a : b;
+                    return result;
+                }
 
-            const reducetoTaillessValue = (value) => {
-                const denominator = parseInt(value.split('/')[1]);
-                return denominator > 4 ? '1/4' : value;
-            }
-
-            const determineRequiredHelpLines = (notes, clef) => {
-                let result = [];
-                const shifts = notes.map(note => calculateNoteShift(note, clef)).sort((a, b) => a - b);
-                const highest = shifts[0], lowest = shifts[shifts.length - 1];
-                for (let above = highest; above < -1; above++) {
-                    if (above % 2 === 0) {
-                        const note = calculateNoteAtShift(above, clef);
-                        result.push(note);
+                static determineReferenceNote(clef) {
+                    switch(clef) {
+                        case "treble":
+                            return { note: 'G4', shift: 6 };
+                        case "bass":
+                            return { note: 'F3', shift: 2 };
                     }
                 }
-                for (let below = lowest; below > 9; below--) {
-                    if (below % 2 === 0) {
-                        const note = calculateNoteAtShift(below, clef);
-                        result.push(note);
+
+                static determineNoteRelativeTo(note, diff, halfTones) {
+                    const allNotes = MusicCalculator.getAllOctaveNotes();
+                    const baseNote = note.substring(0, 2);
+                    const index = allNotes.indexOf(baseNote);
+                    const otherIndex = index + diff;
+                    let otherNote = allNotes[otherIndex];
+                    if (typeof halfTones === 'number') {
+                        while (MusicCalculator.calculateIntervalInHalfTones(note, otherNote) < halfTones) {
+                            otherNote += '#';
+                        }
+                        while (MusicCalculator.calculateIntervalInHalfTones(note, otherNote) > halfTones) {
+                            otherNote += 'B';
+                        }
                     }
+                    return otherNote;
                 }
-                return result;
-            }
 
-            const invertTriad = (triad, inversion) => {
-                let result = JSON.parse(JSON.stringify(triad));
-                for (let i = inversion; i > 0; i--) {
-                    result = result.slice(1).concat([transposeOctaves(result[0], 1)]);
+                static calculateRelativeShift(note, base) {
+                    const octaveNotes = MusicCalculator.getOctaveNotes();
+                    const octaveDiff = parseInt(note.charAt(1)) - parseInt(base.charAt(1));
+                    const octaveShift = -7 * octaveDiff;
+                    const noteDiff = octaveNotes.indexOf(note.charAt(0)) - octaveNotes.indexOf(base.charAt(0));
+                    const noteShift = -1 * noteDiff;
+                    const result = octaveShift + noteShift;
+                    return result;
                 }
-                return result;
-            }
 
-            const transposeOctaves = (note, octaves) => {
-                const octave = parseInt(note.charAt(1));
-                const newOctave = octave + octaves;
-                const result = note.substring(0, 1) + newOctave + note.substring(2);
-                return result;
-            }
-
-            const calculateBaseIntervalName = (a, b) => {
-                const baseIntervalSize = calculateBaseIntervalSize(a, b);
-                const result = getBaseIntervalNames()[baseIntervalSize];
-                return result;
-            }
-
-            const calculateBaseIntervalSize = (a, b) => {
-                const allOctaveNotes = getAllOctaveNotes();
-                const aWithoutSign = a.substring(0, 2);
-                const bWithoutSign = b.substring(0, 2);
-                const aNotePos = allOctaveNotes.indexOf(aWithoutSign);
-                const bNotePos = allOctaveNotes.indexOf(bWithoutSign);
-                const absolute = Math.abs(aNotePos - bNotePos);
-                const result = absolute > 7 ? null : absolute;
-                return absolute;
-            }
-
-            const getAllHalfTones = () => {
-                const cleanValues = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'H': 11};
-                let values = [];
-                for (let octave = 0; octave <= 8; octave++) {
-                    getOctaveNotes().forEach(note => {
-                        const cleanValue = cleanValues[note];
-                        const octaveValue = octave * 12 + cleanValue;
-                        values[note + octave] = octaveValue;
-                        values[note + octave+ '#'] = octaveValue + 1;
-                        values[note + octave+ '##'] = octaveValue + 2;
-                        values[note + octave+ 'B'] = octaveValue - 1;
-                        values[note + octave+ 'BB'] = octaveValue - 2;
-                    })
+                static calculateNoteShift(note, clef) {
+                    const referenceNote = MusicCalculator.determineReferenceNote(clef);
+                    const relativeShift = MusicCalculator.calculateRelativeShift(note, referenceNote.note);
+                    const result = relativeShift + referenceNote.shift;
+                    return result;
                 }
-                return values;
-            }
 
-            const calculateHalfTone = (note) => {
-                const values = getAllHalfTones();
-                return values[note];
-            }
-
-            const calculateNotesFromHalfTone = (halfTone) => {
-                const values = getAllHalfTones();
-                const names = Object.keys(values);
-                const result = names.filter(name => values[name] === halfTone);
-                return result;
-            }
-
-            const calculateIntervalInHalfTones = (a, b) => {
-                const aHalfTone = calculateHalfTone(a);
-                const bHalfTone = calculateHalfTone(b);
-                const result = Math.abs(aHalfTone - bHalfTone);
-                return result;
-            }
-
-
-            const buildTriad = (baseNote, type) => {
-                const middleHalfTonesDiff = type === 'major' ? 4 : 3;
-                const middle = determineNoteRelativeTo(baseNote, 2, middleHalfTonesDiff);
-                const top = determineNoteRelativeTo(baseNote, 4, 7);
-                return [baseNote, middle, top];
-            }
-
-            const invertChordWithinRange = (rawChord, range, inversion) => {
-                let chord = invertTriad(rawChord, inversion);
-                if (!areNotesInRange(chord, range)) {
-                    chord = chord.map(note => transposeOctaves(note, -1));
+                static calculateNoteAtShift(shift, clef) {
+                    const allOctaveNotes = MusicCalculator.getAllOctaveNotes();
+                    const referenceNote = MusicCalculator.determineReferenceNote(clef);
+                    const baseNoteIndex = allOctaveNotes.indexOf(referenceNote.note);
+                    const relativeShift = shift - referenceNote.shift;
+                    const noteIndex = baseNoteIndex - relativeShift;
+                    const result = allOctaveNotes[noteIndex];
+                    return result;
                 }
-                if (!areNotesInRange(chord, range)) {
-                    chord = rawChord;
-                    inversion = 0;
+
+                static calculateNoteY(note, staff, clef) {
+                    const shift = MusicCalculator.calculateNoteShift(note, clef);
+                    return staff.y1 + shift * (staff.lineDistance / 2);
                 }
-                return chord;
-            }
 
-            const areNotesInRange = (notes, range) => {
-                return notes.map(note => isNoteInRange(note, range)).reduce((p, c) => p && c, true);
-            }
-
-            const isNoteInRange = (note, range) => {
-                const allNotes = getAllHalfTones();
-                const lowestIndex = allNotes[range[0]];
-                const noteIndex = allNotes[note];
-                const highestIndex = allNotes[range[1]];
-                const result = noteIndex >= lowestIndex && noteIndex <= highestIndex;
-                return result;
-            }
-
-            const listNumbers = (from, to) => {
-                let result = [];
-                for (let i = from; i <= to; i++) {
-                    result.push(i);
+                static reducetoTaillessValue(value) {
+                    const denominator = parseInt(value.split('/')[1]);
+                    return denominator > 4 ? '1/4' : value;
                 }
-                return result;
-            }
 
-            const getFormattedValue = (value) => {
-                const undotted = value.replace('.', '');
-                let result = undotted;
-                if (value.endsWith('.')) {
-                    const nextSmaller = getNextSmallerValue(undotted);
-                    result += ' + ' + getFormattedValue(nextSmaller);
+                static determineRequiredHelpLines(notes, clef) {
+                    let result = [];
+                    const shifts = notes.map(note => MusicCalculator.calculateNoteShift(note, clef)).sort((a, b) => a - b);
+                    const highest = shifts[0], lowest = shifts[shifts.length - 1];
+                    for (let above = highest; above < -1; above++) {
+                        if (above % 2 === 0) {
+                            const note = MusicCalculator.calculateNoteAtShift(above, clef);
+                            result.push(note);
+                        }
+                    }
+                    for (let below = lowest; below > 9; below--) {
+                        if (below % 2 === 0) {
+                            const note = MusicCalculator.calculateNoteAtShift(below, clef);
+                            result.push(note);
+                        }
+                    }
+                    return result;
                 }
-                return result;
-            }
 
-            const getNextSmallerValue = (value) => {
-                const values = listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i);
-                const index = values.indexOf(value);
-                const result = values[index + 1];
-                return result;
+                static invertTriad(triad, inversion) {
+                    let result = JSON.parse(JSON.stringify(triad));
+                    for (let i = inversion; i > 0; i--) {
+                        result = result.slice(1).concat([MusicCalculator.transposeOctaves(result[0], 1)]);
+                    }
+                    return result;
+                }
+
+                static transposeOctaves(note, octaves) {
+                    const octave = parseInt(note.charAt(1));
+                    const newOctave = octave + octaves;
+                    const result = note.substring(0, 1) + newOctave + note.substring(2);
+                    return result;
+                }
+
+                static calculateBaseIntervalName(a, b) {
+                    const baseIntervalSize = MusicCalculator.calculateBaseIntervalSize(a, b);
+                    const result = getBaseIntervalNames()[baseIntervalSize];
+                    return result;
+                }
+
+                static calculateBaseIntervalSize(a, b) {
+                    const allOctaveNotes = MusicCalculator.getAllOctaveNotes();
+                    const aWithoutSign = a.substring(0, 2);
+                    const bWithoutSign = b.substring(0, 2);
+                    const aNotePos = allOctaveNotes.indexOf(aWithoutSign);
+                    const bNotePos = allOctaveNotes.indexOf(bWithoutSign);
+                    const absolute = Math.abs(aNotePos - bNotePos);
+                    const result = absolute > 7 ? null : absolute;
+                    return absolute;
+                }
+
+                static getAllHalfTones() {
+                    const cleanValues = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'H': 11};
+                    let values = [];
+                    for (let octave = 0; octave <= 8; octave++) {
+                        MusicCalculator.getOctaveNotes().forEach(note => {
+                            const cleanValue = cleanValues[note];
+                            const octaveValue = octave * 12 + cleanValue;
+                            values[note + octave] = octaveValue;
+                            values[note + octave+ '#'] = octaveValue + 1;
+                            values[note + octave+ '##'] = octaveValue + 2;
+                            values[note + octave+ 'B'] = octaveValue - 1;
+                            values[note + octave+ 'BB'] = octaveValue - 2;
+                        })
+                    }
+                    return values;
+                }
+
+                static calculateHalfTone(note) {
+                    const values = MusicCalculator.getAllHalfTones();
+                    return values[note];
+                }
+
+                static calculateNotesFromHalfTone(halfTone) {
+                    const values = MusicCalculator.getAllHalfTones();
+                    const names = Object.keys(values);
+                    const result = names.filter(name => values[name] === halfTone);
+                    return result;
+                }
+
+                static calculateIntervalInHalfTones(a, b) {
+                    const aHalfTone = MusicCalculator.calculateHalfTone(a);
+                    const bHalfTone = MusicCalculator.calculateHalfTone(b);
+                    const result = Math.abs(aHalfTone - bHalfTone);
+                    return result;
+                }
+
+
+                static buildTriad(baseNote, type) {
+                    const middleHalfTonesDiff = type === 'major' ? 4 : 3;
+                    const middle = MusicCalculator.determineNoteRelativeTo(baseNote, 2, middleHalfTonesDiff);
+                    const top = MusicCalculator.determineNoteRelativeTo(baseNote, 4, 7);
+                    return [baseNote, middle, top];
+                }
+
+                static invertChordWithinRange(rawChord, range, inversion) {
+                    let chord = MusicCalculator.invertTriad(rawChord, inversion);
+                    if (!MusicCalculator.areNotesInRange(chord, range)) {
+                        chord = chord.map(note => MusicCalculator.transposeOctaves(note, -1));
+                    }
+                    if (!MusicCalculator.areNotesInRange(chord, range)) {
+                        chord = rawChord;
+                        inversion = 0;
+                    }
+                    return chord;
+                }
+
+                static areNotesInRange(notes, range) {
+                    return notes.map(note => MusicCalculator.isNoteInRange(note, range)).reduce((p, c) => p && c, true);
+                }
+
+                static isNoteInRange(note, range) {
+                    const allNotes = MusicCalculator.getAllHalfTones();
+                    const lowestIndex = allNotes[range[0]];
+                    const noteIndex = allNotes[note];
+                    const highestIndex = allNotes[range[1]];
+                    const result = noteIndex >= lowestIndex && noteIndex <= highestIndex;
+                    return result;
+                }
+
+                static listNumbers(from, to) {
+                    let result = [];
+                    for (let i = from; i <= to; i++) {
+                        result.push(i);
+                    }
+                    return result;
+                }
+
+                static getFractionalValue(value) {
+                    if (!MusicCalculator.isDotted(value)) {
+                        return value;
+                    }
+                    const undottedValue = MusicCalculator.getUndottedValue(value);
+                    const nextSmallerValue = MusicCalculator.getNextSmallerValue(undottedValue);
+                    const sum = FractionCalculator.addFractions([undottedValue, nextSmallerValue]);
+                    return sum;
+                }
+
+                static isDotted(value) {
+                    return value.endsWith('.');
+                }
+
+                static getFormattedValue(value) {
+                    const undotted = MusicCalculator.getUndottedValue(value);
+                    let result = undotted;
+                    if (value.endsWith('.')) {
+                        const nextSmaller = MusicCalculator.getNextSmallerValue(undotted);
+                        result += ' + ' + MusicCalculator.getFormattedValue(nextSmaller);
+                    }
+                    return result;
+                }
+
+                static getUndottedValue(value) {
+                    return value.replace('.', '');
+                }
+
+                static getNextSmallerValue(value) {
+                    const values = MusicCalculator.listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i);
+                    const index = values.indexOf(value);
+                    const result = values[index + 1];
+                    return result;
+                }
+
             }
 
             //---------------------------------------------------------
@@ -1014,11 +1112,11 @@
             }
 
             const calculateIntervalName = (a, b) => {
-                const baseIntervalName = calculateBaseIntervalName(a, b);
+                const baseIntervalName = MusicCalculator.calculateBaseIntervalName(a, b);
                 if (!baseIntervalName) {
                     return null;
                 }
-                const halfTones = calculateIntervalInHalfTones(a, b);
+                const halfTones = MusicCalculator.calculateIntervalInHalfTones(a, b);
                 const preciseIntervalNames = getPreciseIntervalNames();
                 const baseEntry = preciseIntervalNames[baseIntervalName];
                 const detailEntry = !!baseEntry ? baseEntry[halfTones] : null;
@@ -1029,9 +1127,9 @@
 
             const randomizePreciseIntervalName = () => {
                 const intervalDetails = getPreciseIntervalNames();
-                const baseIntervalName = getRandomElementFrom(Object.keys(intervalDetails));
+                const baseIntervalName = Randomizer.getRandomElementFrom(Object.keys(intervalDetails));
                 const baseIntervalDetails = intervalDetails[baseIntervalName];
-                const intervalSize = getRandomElementFrom(Object.keys(baseIntervalDetails));
+                const intervalSize = Randomizer.getRandomElementFrom(Object.keys(baseIntervalDetails));
                 const qualifier = baseIntervalDetails[intervalSize];
                 const result = [qualifier, baseIntervalName].join(' ');
                 return result;
@@ -1073,25 +1171,8 @@
                 return determineIntervals.filter(entry => qualifiers.indexOf(entry.qualifier) >= 0);
             }
 
-            const determineNoteRelativeTo = (note, diff, halfTones) => {
-                const allNotes = getAllOctaveNotes();
-                const baseNote = note.substring(0, 2);
-                const index = allNotes.indexOf(baseNote);
-                const otherIndex = index + diff;
-                let otherNote = allNotes[otherIndex];
-                if (typeof halfTones === 'number') {
-                    while (calculateIntervalInHalfTones(note, otherNote) < halfTones) {
-                        otherNote += '#';
-                    }
-                    while (calculateIntervalInHalfTones(note, otherNote) > halfTones) {
-                        otherNote += 'B';
-                    }
-                }
-                return otherNote;
-            }
-
             const listNotesInKey = (key) => {
-                const notes = getOctaveNotes();
+                const notes = MusicCalculator.getOctaveNotes();
                 const index = notes.indexOf(key);
                 const result = notes.slice(index).concat(notes.slice(0, index));
                 return result;
@@ -1102,23 +1183,23 @@
             // --------------------------------------------------------
 
             const getNormalizedKeyboardKeyName = (note) => {
-                const halfTone = calculateHalfTone(note);
-                const notes = calculateNotesFromHalfTone(halfTone);
+                const halfTone = MusicCalculator.calculateHalfTone(note);
+                const notes = MusicCalculator.calculateNotesFromHalfTone(halfTone);
                 const result = notes.filter(candidate => candidate.length === 2 || (candidate.length === 3 && candidate.endsWith('#'))).sort((a, b) => a.length - b.length)[0];
                 return result;
             }
 
             const getNextNormalizedKeyboardKeyName = (note, halfTones) => {
-                const halfTone = calculateHalfTone(note);
+                const halfTone = MusicCalculator.calculateHalfTone(note);
                 const nextHalfTone = halfTone + halfTones;
-                const notes = calculateNotesFromHalfTone(nextHalfTone);
+                const notes = MusicCalculator.calculateNotesFromHalfTone(nextHalfTone);
                 const result = getNormalizedKeyboardKeyName(notes[0]);
                 return result;
             }
 
             const listKeyboardKeys = (from, to) => {
-                const realFrom = getNormalizedKeyboardKeyName(getMinNote(from, to));
-                const realTo = getNormalizedKeyboardKeyName(getMaxNote(from, to));
+                const realFrom = getNormalizedKeyboardKeyName(MusicCalculator.getMinNote(from, to));
+                const realTo = getNormalizedKeyboardKeyName(MusicCalculator.getMaxNote(from, to));
                 let note = realFrom, result = [], completed = false;
                 while (!completed) {
                     result.push(note);
@@ -1132,20 +1213,6 @@
                 const middleNoteIndexes = [1, 0, 2];
                 const middleNoteIndex = middleNoteIndexes[inversion];
                 return chordNotes[middleNoteIndex];
-            }
-
-            const getMinNote = (a, b) => {
-                const valA = calculateHalfTone(a);
-                const valB = calculateHalfTone(b);
-                const result = valA <= valB ? a : b;
-                return result;
-            }
-
-            const getMaxNote = (a, b) => {
-                const valA = calculateHalfTone(a);
-                const valB = calculateHalfTone(b);
-                const result = valA >= valB ? a : b;
-                return result;
             }
 
             // --------------------------------------------------------
@@ -1176,12 +1243,12 @@
                     if (isArray(answer.diagram)) {
                         const diagramId = 'answer-diagram-' + num;
                         const diagramElement = document.getElementById(diagramId);
-                        setMusicDiagram(diagramElement, answer.diagram);
+                        StaffLayouter.setMusicDiagram(diagramElement, answer.diagram);
                     }
                     if (!!answer.keyboard) {
                         const diagramId = 'answer-diagram-' + num;
                         const diagramElement = document.getElementById(diagramId);
-                        setKeyboard(diagramElement, answer.keyboard.from, answer.keyboard.to, answer.keyboard.markedNotes, 150, 75, 300, 100);
+                        KeyboardDrawer.setKeyboard(diagramElement, answer.keyboard.from, answer.keyboard.to, answer.keyboard.markedNotes, 150, 75, 300, 100);
                     }
                 }
             }
@@ -1201,12 +1268,13 @@
                 return result;
             }
 
-            const fillWithRandomWrongAnswers = (answers, randomizeWrongAnswer) => {
+            const fillWithRandomWrongAnswers = (answers, randomizeWrongAnswer, comparisonConverter) => {
+                const convertForComparison = typeof comparisonConverter === 'function' ? comparisonConverter : (entry) => JSON.stringify(entry);
                 let result = JSON.parse(JSON.stringify(answers));
                 for (let i = 0; i < answers.length; i++) {
                     if (result[i] === null) {
                         let wrongAnswer = null;
-                        while (wrongAnswer === null || result.map(entry => JSON.stringify(entry)).indexOf(JSON.stringify(wrongAnswer)) >= 0) {
+                        while (wrongAnswer === null || result.map(entry => convertForComparison(entry)).indexOf(convertForComparison(wrongAnswer)) >= 0) {
                             wrongAnswer = randomizeWrongAnswer();
                         }
                         result[i] = wrongAnswer;
@@ -1315,14 +1383,14 @@
             // --------------------------------------------------------
 
             const askForKeyboardKey = () => {
-                const note = randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                const note = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
                 const keyboardKey = getNormalizedKeyboardKeyName(note);
                 const noteName = getGermanNoteNameWithoutOctave(note);
                 const fromNote = 'A3#', toNote = 'C5#';
                 const keyboardKeys = listKeyboardKeys(fromNote, toNote);
                 const markedNotes = keyboardKeys.filter(key => key === keyboardKey);
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = {
                     keyboard: {
                         from: fromNote,
@@ -1331,7 +1399,7 @@
                     }
                 };
                 answers = fillWithRandomWrongAnswers(answers, () => {
-                    const randomMarkedNote = randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                    const randomMarkedNote = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
                     const randomMarkedKeyboardKey = getNormalizedKeyboardKeyName(randomMarkedNote);
                     const randomMarkedNotes = keyboardKeys.filter(key => key === randomMarkedKeyboardKey);
                     const result = {
@@ -1354,11 +1422,11 @@
             }
 
             const askForValue = () => {
-                const values = listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i).flatMap(val => val === '1/64' ? [val] : [val, val + '.']);
-                const type = getRandomElementFrom(['note', 'pause']);
+                const values = MusicCalculator.listNumbers(0, 6).map(i => 2 ** i).map(i => '1/' + i).flatMap(val => val === '1/64' ? [val] : [val, val + '.']);
+                const type = Randomizer.getRandomElementFrom(['note', 'pause']);
                 const text = type === 'note' ? 'Note' : 'Pause';
                 let diagram = [];
-                const value = getRandomElementFrom(values);
+                const value = Randomizer.getRandomElementFrom(values);
                 if (type === 'note') {
                     diagram.push({
                         element: 'note',
@@ -1372,9 +1440,9 @@
                     });
                 }
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
-                answers[correctAnswer] = { text: getFormattedValue(value) };
-                answers = fillWithRandomWrongAnswers(answers, () => ({ text: getFormattedValue(getRandomElementFrom(values)) }));
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                answers[correctAnswer] = { text: MusicCalculator.getFormattedValue(value) };
+                answers = fillWithRandomWrongAnswers(answers, () => ({ text: MusicCalculator.getFormattedValue(Randomizer.getRandomElementFrom(values)) }));
                 const result = {
                     question: {
                         text: "Welchen Wert hat diese " + text + "?",
@@ -1388,24 +1456,24 @@
 
             const askForNoteName = () => {
                 const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
-                const clef = getRandomElementFrom(['treble', 'bass']);
+                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
                 let diagram = [];
                 diagram.push({
                     element: 'clef',
                     type: clef
                 });
                 const range = ranges[clef];
-                const note = randomizeNoteBetween(range[0], range[1], ['', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                const note = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '', '', '#', '#', 'B', 'B', '##', 'BB']);
                 diagram.push({
                     element:'note',
                     note: note,
                     value: '1/4'
                 });
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { text: getGermanNoteName(note) };
                 answers = fillWithRandomWrongAnswers(answers, () => {
-                    const randomAnswer = randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
+                    const randomAnswer = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
                     formattedAnswer = getGermanNoteName(randomAnswer);
                     return { text: formattedAnswer };
                 });
@@ -1435,13 +1503,13 @@
             const askForInterval = () => {
                 const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                 let diagram = [];
-                const clef = getRandomElementFrom(['treble', 'bass']);
+                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
                 diagram.push({
                     element: 'clef',
                     type: clef
                 });
                 const range = ranges[clef];
-                const interval = randomizeInterval(range);
+                const interval = MusicRandomizer.randomizeInterval(range);
                 diagram.push({
                     element: 'note',
                     note: interval.note1,
@@ -1453,7 +1521,7 @@
                     value: '1/4'
                 });
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { text: interval.name };
                 answers = fillWithRandomWrongAnswers(answers, () => ({ text: randomizePreciseIntervalName() }));
                 const result = {
@@ -1501,12 +1569,12 @@
 
             const askForComplementaryInterval = () => {
                 const intervals = determineIntervals();
-                const interval = getRandomElementFrom(intervals);
+                const interval = Randomizer.getRandomElementFrom(intervals);
                 const complementaryInterval = determineComplementaryInterval(interval);
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { text: complementaryInterval.intervalName };
-                answers = fillWithRandomWrongAnswers(answers, () => ({ text: getRandomElementFrom(intervals).intervalName }));
+                answers = fillWithRandomWrongAnswers(answers, () => ({ text: Randomizer.getRandomElementFrom(intervals).intervalName }));
                 let explanation = "Das prinzipielle Komplementär zur " + interval.baseIntervalName + " ist die " + complementaryInterval.baseIntervalName + ". ";
                 explanation += "Da das Original-Intervall eine " + interval.qualifier + " Größe hat, hat das Komplementär die gegenteilige Größe, also eine " + complementaryInterval.qualifier + ". ";
                 explanation += "Die " + interval.intervalName + " umfasst " + interval.halfTones + " Halbtonschritte, sein Komplementär " + complementaryInterval.intervalName + " " + complementaryInterval.halfTones + " Halbtonschritte - in Summe immer 12.";
@@ -1524,13 +1592,13 @@
             const askForIntervalInHalfTones = () => {
                 const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                 let diagram = [];
-                const clef = getRandomElementFrom(['treble', 'bass']);
+                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
                 diagram.push({
                     element: 'clef',
                     type: clef
                 });
                 const range = ranges[clef];
-                const interval = randomizeInterval(range);
+                const interval = MusicRandomizer.randomizeInterval(range);
                 diagram.push({
                     element: 'note',
                     note: interval.note1,
@@ -1541,11 +1609,11 @@
                     note: interval.note2,
                     value: '1/4'
                 });
-                const halfTones = calculateIntervalInHalfTones(interval.note1, interval.note2);
+                const halfTones = MusicCalculator.calculateIntervalInHalfTones(interval.note1, interval.note2);
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { text: "" + halfTones };
-                answers = fillWithRandomWrongAnswers(answers, () => ({ text: "" + randomizeNumberBetween(0, 12) }));
+                answers = fillWithRandomWrongAnswers(answers, () => ({ text: "" + Randomizer.randomizeNumberBetween(0, 12) }));
                 const keyboardKeys = listKeyboardKeys(interval.note1, interval.note2);
                 const namedKeyboardNotes = keyboardKeys.map(note => getGermanNoteName(note));
                 const nameNote = (note) => {
@@ -1569,28 +1637,28 @@
             const askForChord = () => {
                 const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                 let diagram = [];
-                const clef = getRandomElementFrom(['treble', 'bass']);
+                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
                 diagram.push({
                     element: 'clef',
                     type: clef
                 });
                 const range = ranges[clef];
-                const randomChord = randomizeTriad(range);
-                const rawChord = buildTriad(randomChord.baseNote, randomChord.chordType);
-                const inversion = getRandomElementFrom([0, 1, 2]);
-                const chord = invertChordWithinRange(rawChord, range, inversion);
+                const randomChord = MusicRandomizer.randomizeTriad(range);
+                const rawChord = MusicCalculator.buildTriad(randomChord.baseNote, randomChord.chordType);
+                const inversion = Randomizer.getRandomElementFrom([0, 1, 2]);
+                const chord = MusicCalculator.invertChordWithinRange(rawChord, range, inversion);
                 diagram.push({
                     element: 'chord',
                     notes: chord,
                     value: '1/4'
                 });
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 const formattedCorrectAnswer = getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
                 answers[correctAnswer] = { text: formattedCorrectAnswer };
                 answers = fillWithRandomWrongAnswers(answers, () => {
-                    const wrongChord = randomizeTriad(range);
-                    const wrongInversion = randomizeNumberBetween(0, 2);
+                    const wrongChord = MusicRandomizer.randomizeTriad(range);
+                    const wrongInversion = Randomizer.randomizeNumberBetween(0, 2);
                     formattedAnswer = getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
                     return { text: formattedAnswer };
                 });
@@ -1598,7 +1666,7 @@
                 explanation += "Der Akkord ist in der " + (inversion === 0 ? 'Grundstellung, denn es ist keine Lücke erkennbar' : (inversion + ". Umkehrung, erkennbar an der Lücke")) + ". ";
                 explanation += "In dieser Stellung ist der Grundton " + (inversion === 0 ? 'die unterste Note' : 'die Note oberhalb der Lücke') + ", also " + getGermanNoteNameWithoutOctave(randomChord.baseNote) + ". ";
                 explanation += "In der Grundstellung wären die Noten des Akkords " + rawChord.map(note => getGermanNoteNameWithoutOctave(note)).join(', ') + ".<br/><br/>";
-                explanation += "Zwischen dem Grundton " + getGermanNoteNameWithoutOctave(rawChord[0]) + " und dem in der Grundstellung darüber liegenden Ton " + getGermanNoteNameWithoutOctave(rawChord[1]) + " liegen " + calculateIntervalInHalfTones(rawChord[0], rawChord[1]) + " Halbtonschritte, also eine " + calculateIntervalName(rawChord[0], rawChord[1]) + ". ";
+                explanation += "Zwischen dem Grundton " + getGermanNoteNameWithoutOctave(rawChord[0]) + " und dem in der Grundstellung darüber liegenden Ton " + getGermanNoteNameWithoutOctave(rawChord[1]) + " liegen " + MusicCalculator.calculateIntervalInHalfTones(rawChord[0], rawChord[1]) + " Halbtonschritte, also eine " + calculateIntervalName(rawChord[0], rawChord[1]) + ". ";
                 explanation += "Dieses Intervall erzeugt einen " + (randomChord.chordType === 'major' ? 'Dur' : 'Moll' ) + "-Akkord.";
                 const result = {
                     question: {
@@ -1614,9 +1682,9 @@
 
             const askForIntervalHalfToneSize = () => {
                 const intervals = determineIntervals();
-                const solution = getRandomElementFrom(intervals);
+                const solution = Randomizer.getRandomElementFrom(intervals);
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { text: "" + solution.halfTones };
                 let wrongCandidates = [];
                 const from = Math.max(0, solution.halfTones - 4);
@@ -1626,7 +1694,7 @@
                         wrongCandidates.push(i);
                     }
                 }
-                const wrongAnswers = getRandomElementsFrom(wrongCandidates, 3).map(entry => ({ text: "" + entry }));
+                const wrongAnswers = Randomizer.getRandomElementsFrom(wrongCandidates, 3).map(entry => ({ text: "" + entry }));
                 answers = fillWithWrongAnswers(answers, wrongAnswers);
                 let explanation = "";
                 const baseIntervalName = solution.baseIntervalName;
@@ -1674,9 +1742,9 @@
                     ['Mild dissonant', ['kleine Septime', 'große Sekunde']],
                     ['Scharf dissonant', ['große Septime', 'kleine Sekunde', 'Tritonus', 'übermäßige Quarte']]
                 ];
-                const consonanceGroup = getRandomElementFrom(intervals);
+                const consonanceGroup = Randomizer.getRandomElementFrom(intervals);
                 const consonanceDegree = consonanceGroup[0];
-                const intervalName = getRandomElementFrom(consonanceGroup[1]);
+                const intervalName = Randomizer.getRandomElementFrom(consonanceGroup[1]);
                 let answers = intervals.map(interval => interval[0]);
                 const correctAnswer = answers.indexOf(consonanceDegree);
                 answers = answers.map(entry => ({ text: entry }));
@@ -1691,16 +1759,16 @@
             }
 
             const askForChordAtDegree = () => {
-                const clef = getRandomElementFrom(['treble', 'bass']);
+                const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
                 const ranges = { treble: ['C4', 'C5'], bass: ['C2', 'C3']};
                 const range = ranges[clef];
-                const keyBaseNote = randomizeNoteBetween(range[0], range[1], ['']);
+                const keyBaseNote = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['']);
                 const key = keyBaseNote.charAt(0);
-                const degree = randomizeNumberBetween(1, 7);
+                const degree = Randomizer.randomizeNumberBetween(1, 7);
                 const shift = degree - 1;
-                const chordBaseNote = determineNoteRelativeTo(keyBaseNote, shift);
+                const chordBaseNote = MusicCalculator.determineNoteRelativeTo(keyBaseNote, shift);
                 const chordType = (degree === 1 || degree === 4 || degree === 5) ? 'major' : 'minor';
-                const chord = buildTriad(chordBaseNote, chordType);
+                const chord = MusicCalculator.buildTriad(chordBaseNote, chordType);
                 let diagram = [{
                     element: 'clef',
                     type: clef
@@ -1710,7 +1778,7 @@
                     value: '1/4'
                 }];
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { diagram: diagram };
                 const romanizedDegree = convertToRomanNumber(degree);
                 const formattedDegree = chordType === 'major' ? romanizedDegree.toUpperCase() : romanizedDegree.toLowerCase();
@@ -1720,8 +1788,8 @@
                         element: 'clef',
                         type: clef
                     });
-                    const randomChord = randomizeTriad(range);
-                    const chord = buildTriad(randomChord.baseNote, randomChord.chordType);
+                    const randomChord = MusicRandomizer.randomizeTriad(range);
+                    const chord = MusicCalculator.buildTriad(randomChord.baseNote, randomChord.chordType);
                     diagram.push({
                         element: 'chord',
                         notes: chord,
@@ -1747,12 +1815,76 @@
                 return result;
             }
 
+            class FractionCalculator {
+
+                static addFractions(fractions) {
+                    const adjusted = FractionCalculator.adjustToCommonDenominator(fractions);
+                    const numerators = FractionCalculator.listNumerators(adjusted.fractions);
+                    const resultNumerator = numerators.reduce((p, c) => p + c, 0);
+                    const result = resultNumerator + '/' + adjusted.denominator;
+                    return result;
+                }
+
+                static subtractFractions(fractions) {
+                    const adjusted = FractionCalculator.adjustToCommonDenominator(fractions);
+                    const numerators = FractionCalculator.listNumerators(adjusted.fractions);
+                    const resultNumerator = numerators.slice(1).reduce((p, c) => p - c, numerators[0]);
+                    const result = resultNumerator + '/' + adjusted.denominator;
+                    return result;
+                }
+
+                static adjustToCommonDenominator(fractions) {
+                    const commonDenominator = FractionCalculator.calculateSmallestCommonDenominator(fractions);
+                    const adjustedFractions = fractions.map(fraction => FractionCalculator.adjustToDenominator(fraction, commonDenominator));
+                    const result = {
+                        fractions: adjustedFractions,
+                        denominator: commonDenominator
+                    }
+                    return result;
+                }
+
+                static adjustToDenominator(fraction, denominator) {
+                    const parts = fraction.split("/");
+                    const actualNumerator = parseInt(parts[0]);
+                    const actualDenominator = parseInt(parts[1]);
+                    const multiple = denominator / actualDenominator;
+                    const adjustedNumerator = actualNumerator * multiple;
+                    const result = adjustedNumerator + '/' + denominator;
+                    return result;
+                }
+
+                static calculateSmallestCommonDenominator(fractions) {
+                    const denominators = FractionCalculator.listDenominators(fractions);
+                    const result = denominators.reduce((p, c) => FractionCalculator.calculateSmallestCommonMultiple(p, c), 1);
+                    return result;
+                }
+
+                static calculateSmallestCommonMultiple(a, b) {
+                    const start = Math.max(a, b), end = a * b;
+                    for (let i = start; i <= end; i++) {
+                        if (i % a === 0 && i % b === 0) {
+                            return i;
+                        }
+                    }
+                    return null;
+                }
+
+                static listNumerators(fractions) {
+                    return fractions.map(fraction => parseInt(fraction.split('/')[0]));
+                }
+
+                static listDenominators(fractions) {
+                    return fractions.map(fraction => parseInt(fraction.split('/')[1]));
+                }
+                
+            }
+
             const askToCompleteMeasure = () => {
                 const measures = ['4/4', '3/4', '2/4', '6/8', '5/4'];
                 const values = ['1/2', '1/2.', '1/4', '1/4.', '1/8', '1/8.', '1/16'];
                 const range = ['C4', 'A5'];
                 const signs = [''];
-                const measure = getRandomElementFrom(measures);
+                const measure = Randomizer.getRandomElementFrom(measures);
                 const clef = {
                     element: 'clef',
                     type: 'treble'
@@ -1761,23 +1893,26 @@
                     element: 'measure',
                     measure: measure
                 }];
-                const melody = randomizeMelody(measure, range[0], range[1], signs, values);
-                const redactedIndex = randomizeNumberBetween(0, melody.length - 1);
+                const melody = MusicRandomizer.randomizeMelody(measure, range[0], range[1], signs, values);
+                const redactedIndex = Randomizer.randomizeNumberBetween(0, melody.length - 1);
                 const redactedElement = melody[redactedIndex];
                 const placeholder = {
                     element: 'text',
                     text: '?'
                 };
-                const redactedMelody = melody.slice(0, redactedIndex).concat([placeholder]).concat(melody.slice(redactedIndex));
+                const redactedMelody = melody.slice(0, redactedIndex).concat([placeholder]).concat(melody.slice(redactedIndex + 1));
                 diagram = diagram.concat(redactedMelody);
                 diagram = diagram.concat([{ element: 'bar' }]);
                 let answers = [null, null, null, null];
-                const correctAnswer = randomizeNumberBetween(0, 3);
+                const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                 answers[correctAnswer] = { text: '', diagram: [redactedElement] };
+                const reduceToValue = (entry) => {
+                    return !!entry ? entry.diagram[0].value : null;
+                }
                 answers = fillWithRandomWrongAnswers(answers, () => {
-                    const value = getRandomElementFrom(values);
-                    const type = getRandomElementFrom(['note', 'pause']);
-                    const note = type === 'note' ? randomizeNoteBetween(range[0], range[1], signs) : undefined;
+                    const value = Randomizer.getRandomElementFrom(values);
+                    const type = Randomizer.getRandomElementFrom(['note', 'pause']);
+                    const note = type === 'note' ? MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs) : undefined;
                     const element = {
                         element: type,
                         value: value,
@@ -1786,12 +1921,33 @@
                     const result = {
                         text: '',
                         diagram: [element]
-                    }
+                    } 
                     return result;
-                });
-                let explanation = "Die Melodie enthält die folgenden Elemente: ";
-                explanation += redactedMelody.filter(element => element.element != 'text').map(element => element.value + "-" + (element.element === 'note' ? 'Note' : 'Pause')).join(", ") + ".";
-                explanation += "Es fehlt also ein Element mit dem Wert " + redactedElement.value + ".";
+                }, reduceToValue);
+                const redactedMelodyElements = redactedMelody.filter(element => !!element.value);
+                const fractionalValues = redactedMelodyElements.map(element => MusicCalculator.getFractionalValue(element.value));
+                const commonDenominator = FractionCalculator.calculateSmallestCommonDenominator(fractionalValues);
+                const describeElements = (elements) => {
+                    const result = elements.map(element => {
+                        const formattedValue = element.value + "-" + (element.element === 'note' ? 'Note' : 'Pause');
+                        const fractionalValue = MusicCalculator.getFractionalValue(element.value);
+                        const normalizedValue = FractionCalculator.adjustToDenominator(fractionalValue, commonDenominator);
+                        const description = formattedValue + " = " + normalizedValue;
+                        return description;
+                    }).join(", ");
+                    return result;
+                }
+                let explanation = "Der kleinste vorkommende Wert ist 1/" + commonDenominator + ". ";
+                explanation += "Die Melodie enthält die Elemente ";
+                explanation += describeElements(redactedMelodyElements) + ". ";
+                const total = FractionCalculator.addFractions(redactedMelodyElements.map(element => element.value).map(value => MusicCalculator.getFractionalValue(value)));
+                if (redactedMelodyElements.length > 1) {
+                    explanation += "In Summe " + total + ". ";
+                }
+                const measureValue = FractionCalculator.adjustToDenominator(measure, commonDenominator);
+                explanation += "Der Takt hat den Wert " + (measure != measureValue ? measure + " = " : "") + measureValue + ". ";
+                const missing = FractionCalculator.subtractFractions([measure, total]);
+                explanation += "Es fehlt also ein Element mit dem Wert " + measureValue + " - " + total + " = " + missing + (redactedElement.value != missing ? " = " + redactedElement.value : "") + ".";
                 const result = {
                     question: {
                         text: 'Welcher Ton oder welche Pause komplettiert diesen Takt?',
@@ -1801,30 +1957,6 @@
                     correctAnswer: correctAnswer,
                     explanation: explanation
                 };
-                return result;
-            }
-
-            const randomizeMelody = (measure, fromNote, toNote, signs, values) => {
-                let randomValues = [], remainder = countSixtyFourthsInMeasure(measure);
-                while (remainder > 0) {
-                    const possibleValues = values.filter(value => countSixtyFourthsInValue(value) <= remainder);
-                    const next = getRandomElementFrom(possibleValues);
-                    const length = countSixtyFourthsInValue(next);
-                    randomValues.push(next);
-                    remainder -= length;
-                }
-                let result = [];
-                for (let i = 0; i < randomValues.length; i++) {
-                    const value = randomValues[i];
-                    const type = getRandomElementFrom(['note', 'pause']);
-                    const note = type === 'note' ? randomizeNoteBetween(fromNote, toNote, signs) : undefined;
-                    const element = {
-                        element: type,
-                        value: value,
-                        note: note
-                    }
-                    result.push(element);
-                }
                 return result;
             }
 
@@ -1858,7 +1990,7 @@
                 setQuestionText(question.question.text);
                 if (!!question.question.diagram) {
                     const questionDiagram = document.getElementById("question-diagram");
-                    setMusicDiagram(questionDiagram, question.question.diagram);
+                    StaffLayouter.setMusicDiagram(questionDiagram, question.question.diagram);
                 }
                 setAnswerTexts(question.answers);
                 setEventListeners(question.correctAnswer + 1);
@@ -1876,7 +2008,7 @@
             }
 
             const randomizeQuestion = () => {
-                const next = getRandomElementFrom([
+                const next = Randomizer.getRandomElementFrom([
                     askForKeyboardKey,
                     askForNoteName, 
                     askForInterval,
@@ -1886,8 +2018,8 @@
                     askForConsonanceDegreeByIntervalName,
                     askForIntervalInHalfTones,
                     askForChordAtDegree,
-                    askForComplementaryInterval
-                    // askToCompleteMeasure
+                    askForComplementaryInterval,
+                    askToCompleteMeasure
                 ]);
                 const question = next();
                 return question;
