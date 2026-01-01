@@ -732,6 +732,22 @@
                     return result;
                 }
 
+                static randomizeCadenceChords(cadence, range) {
+                    const baseNote = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['']);
+                    return MusicCalculator.determineCadenceChords(cadence, baseNote);
+                }
+
+                static randomizeCadence() {
+                    let degrees = ['I'];
+                    while (degrees.length < 3) {
+                        const randomDegree = Namer.convertToRomanNumber(Randomizer.randomizeNumberBetween(1, 7));
+                        const randomType = Randomizer.getRandomElementFrom('major', 'minor');
+                        const degree = randomType === 'major' ? randomDegree.toUpperCase() : randomDegree.toLowerCase();
+                        degrees.push(degree);
+                    }
+                    return degrees;
+                }
+
             }
 
             // --------------------------------------------------------
@@ -739,6 +755,61 @@
             // --------------------------------------------------------
 
             class MusicCalculator {
+
+                static simplifyChordSequence(chords) {
+                    let result = [chords[0]];
+                    while (result.length < chords.length) {
+                        const last = result[result.length - 1];
+                    }
+                    return result;
+                }
+
+                static getClefRanges(clef) {
+                    return { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
+                }
+
+                static getClefs() {
+                    return ['treble', 'bass'];
+                }
+
+                static determineClefRange(clef) {
+                    return MusicCalculator.getClefRanges()[clef];
+                }
+
+                static determineReducedClefRange(clef) {
+                    const fullRange = MusicCalculator.determineClefRange(clef);
+                    const lower = fullRange[0];
+                    const upper = MusicCalculator.transposeOctaves(fullRange[1], -1)
+                    return [lower, upper];
+                }
+
+                static getCadences() {
+                    return ["I-IV-V-I", "I-IV-vi-V"];
+                }
+
+                static getAllCadences() {
+                    return ["I-IV-V-I", "I-IV-vi-V", "I-V-I", "I-IV-I", 'I-II-V-I', 'I-V-IV-I'];
+                }
+
+                static determineCadenceChords(cadence, baseNote) {
+                    const degrees = cadence.split('-');
+                    const chords = degrees.map(degree => {
+                        const degreeNumber = Namer.convertfromRomanNumber(degree);
+                        const shift = degreeNumber - 1;
+                        const chordBaseNote = MusicCalculator.determineNoteRelativeTo(baseNote, shift);
+                        const type = degree === degree.toUpperCase() ? 'major' : 'minor';
+                        const result = MusicCalculator.buildTriad(chordBaseNote, type);
+                        return result;
+                    });
+                    return chords;
+                }
+
+                static listNotesInKey(key) {
+                    const notes = MusicCalculator.getOctaveNotes();
+                    const index = notes.indexOf(key);
+                    const result = notes.slice(index).concat(notes.slice(0, index));
+                    return result;
+                }
 
                 static hasSign(note) {
                     return note.length > 2;
@@ -925,6 +996,23 @@
                     return [baseNote, middle, top];
                 }
 
+                static buildTriadInRange(baseNote, type, range) {
+                    const baseNotes = [baseNote].concat(MusicCalculator.getAllOctaveNotes().filter(note => note.startsWith(baseNote.charAt(0))));
+                    const inversions = [0, 1, 2];
+                    let chord = ['C0'], i = 0, j = 0;
+                    while (!areNotesInRange(chord, range)) {
+                        const currentBaseNote = baseNotes[i];
+                        chord = buildTriad(currentBaseNote, type);
+                        if (j === 2) {
+                            j = 0;
+                            i++;
+                        } else {
+                            j++;
+                        }
+                    }
+                    return chord;
+                }
+
                 static invertChordWithinRange(rawChord, range, inversion) {
                     let chord = MusicCalculator.invertTriad(rawChord, inversion);
                     if (!MusicCalculator.areNotesInRange(chord, range)) {
@@ -1058,6 +1146,17 @@
 
             class Namer {
 
+                static determineCadenceName(cadence) {
+                    switch (cadence) {
+                        case 'I-IV-V-I':
+                            return 'klassischen Kadenz';
+                        case 'I-IV-vi-V':
+                            return '4-Chord-Turnaround';
+                        default:
+                            return 'unbekannt';
+                    }
+                }
+
                 static convertToRomanNumber(number) {
                     switch (number) {
                         case 1:
@@ -1074,6 +1173,25 @@
                             return 'VI';
                         case 7:
                             return 'VII';
+                    }
+                }
+
+                static convertfromRomanNumber(romanNumber) {
+                    switch (romanNumber.toUpperCase()) {
+                        case 'I':
+                            return 1;
+                        case 'II':
+                            return 2;
+                        case 'III':
+                            return 3;
+                        case 'IV':
+                            return 4;
+                        case 'V':
+                            return 5;
+                        case 'VI':
+                            return 6;
+                        case 'VII':
+                            return 7;
                     }
                 }
 
@@ -1230,13 +1348,6 @@
                     return Namer.determineIntervals.filter(entry => qualifiers.indexOf(entry.qualifier) >= 0);
                 }
 
-                static listNotesInKey(key) {
-                    const notes = MusicCalculator.getOctaveNotes();
-                    const index = notes.indexOf(key);
-                    const result = notes.slice(index).concat(notes.slice(0, index));
-                    return result;
-                }
-
             }
 
             // --------------------------------------------------------
@@ -1366,20 +1477,22 @@
                 static setAnswerTexts(answers) {
                     for (let i = 0; i < answers.length; i++) {
                         const num = i + 1, answer = answers[i];
-                        if (typeof answer.text === 'string') {
-                            const textId = "answer-text-" + num;
-                            const textElement = document.getElementById(textId);
-                            textElement.textContent = answer.text;
-                        }
-                        if (Quiz.isArray(answer.diagram)) {
-                            const diagramId = 'answer-diagram-' + num;
-                            const diagramElement = document.getElementById(diagramId);
-                            StaffLayouter.setMusicDiagram(diagramElement, answer.diagram);
-                        }
-                        if (!!answer.keyboard) {
-                            const diagramId = 'answer-diagram-' + num;
-                            const diagramElement = document.getElementById(diagramId);
-                            KeyboardDrawer.setKeyboard(diagramElement, answer.keyboard.from, answer.keyboard.to, answer.keyboard.markedNotes, 150, 75, 300, 100);
+                        if (!!answer) {
+                            if (typeof answer.text === 'string') {
+                                const textId = "answer-text-" + num;
+                                const textElement = document.getElementById(textId);
+                                textElement.textContent = answer.text;
+                            }
+                            if (Quiz.isArray(answer.diagram)) {
+                                const diagramId = 'answer-diagram-' + num;
+                                const diagramElement = document.getElementById(diagramId);
+                                StaffLayouter.setMusicDiagram(diagramElement, answer.diagram);
+                            }
+                            if (!!answer.keyboard) {
+                                const diagramId = 'answer-diagram-' + num;
+                                const diagramElement = document.getElementById(diagramId);
+                                KeyboardDrawer.setKeyboard(diagramElement, answer.keyboard.from, answer.keyboard.to, answer.keyboard.markedNotes, 150, 75, 300, 100);
+                            }
                         }
                     }
                 }
@@ -1543,7 +1656,8 @@
                         Questions.askForIntervalInHalfTones,
                         Questions.askForChordAtDegree,
                         Questions.askForComplementaryInterval,
-                        Questions.askToCompleteMeasure
+                        Questions.askToCompleteMeasure,
+                        Questions.askToCompleteCadence
                     ]);
                     const question = next();
                     return question;
@@ -1561,7 +1675,58 @@
             // --------------------------------------------------------
 
             class Questions {
-                    
+
+                static askToCompleteCadence() {
+                    const clefs = MusicCalculator.getClefs();
+                    const clef = Randomizer.getRandomElementFrom(clefs);
+                    const range = MusicCalculator.determineReducedClefRange(clef);
+                    const cadences = MusicCalculator.getCadences();
+                    const cadence = Randomizer.getRandomElementFrom(cadences);
+                    const cadenceName = Namer.determineCadenceName(cadence);
+                    const chords = MusicRandomizer.randomizeCadenceChords(cadence, range);
+                    const startChord = chords[0];
+                    const questionDiagram = [{
+                        element: 'clef',
+                        type: clef
+                    }, {
+                        element: 'chord',
+                        notes: startChord,
+                        value: '1/4'
+                    }];
+                    const answerChords = chords.slice(1);
+                    const answerDiagram = [{
+                        element: 'clef',
+                        type: clef
+                    }].concat(answerChords.map(chord => ({ element: 'chord', notes: chord, value: '1/4' })));
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    answers[correctAnswer] = {
+                        diagram: answerDiagram
+                    };
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
+                        const wrongCadence = MusicRandomizer.randomizeCadence();
+                        const wrongChords = MusicRandomizer.randomizeCadenceChords(cadence, range);
+                        const wrongAnswerChords = wrongChords.slice(1);
+                        const wrongAnswerDiagram = [{
+                            element: 'clef',
+                            type: clef
+                        }].concat(wrongAnswerChords.map(chord => ({ element: 'chord', notes: chord, value: '1/4' })));
+                        const result = {
+                            diagram: wrongAnswerDiagram
+                        };
+                        return result;
+                    });
+                    const result = {
+                        question: {
+                            text: 'Welche Akkorde vervollständigen diesen Startakkord zur/m ' + cadenceName + '?',
+                            diagram: questionDiagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer
+                    }
+                    return result;
+                }
+
                 static askForKeyboardKey() {
                     const note = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
                     const keyboardKey = getNormalizedKeyboardKeyName(note);
@@ -1635,7 +1800,7 @@
                 }
 
                 static askForNoteName() {
-                    const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
+                    const ranges = MusicCalculator.getClefRanges();
                     const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
                     let diagram = [];
                     diagram.push({
@@ -1947,7 +2112,7 @@
                             diagram: diagram
                         };
                     });
-                    let explanation = "Die Tonleiter über dem " + key + " umfasst die Töne " + Namer.listNotesInKey(key).map((note, i) => (i+1) + "=" + note).join(", ") + ". ";
+                    let explanation = "Die Tonleiter über dem " + key + " umfasst die Töne " + MusicCalculator.listNotesInKey(key).map((note, i) => (i+1) + "=" + note).join(", ") + ". ";
                     explanation += "Die " + romanizedDegree + ". = " + degree + ". Stufe darin ist also die Note " + chordBaseNote.charAt(0) + ". ";
                     explanation += "Der Basis-Dreiklang über dieser Note umfasst die Töne " + chord.map(note => note.charAt(0)).join("-") + ". ";
                     explanation += "Die Groß-/Kleinschreibung der Stufe " + formattedDegree + " zeigt an, dass ein " + (chordType === 'major' ? "Dur" : "Moll") + "-Akkord gesucht ist, das Intervall zwischen dem Grundton und dem mittleren Ton des Akkords muss also eine "  + (chordType === 'major' ? "große" : "kleine") + " Terz sein. ";
