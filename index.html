@@ -732,20 +732,21 @@
                     return result;
                 }
 
-                static randomizeCadenceChords(cadence, range) {
+                static randomizeChordSequenceChords(sequence, range) {
                     const baseNote = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['']);
-                    return MusicCalculator.determineCadenceChords(cadence, baseNote);
+                    return MusicCalculator.determineChordSequenceChords(sequence, baseNote);
                 }
 
-                static randomizeCadence() {
+                static randomizeChordSequence() {
                     let degrees = ['I'];
-                    while (degrees.length < 3) {
+                    while (degrees.length < 4) {
                         const randomDegree = Namer.convertToRomanNumber(Randomizer.randomizeNumberBetween(1, 7));
                         const randomType = Randomizer.getRandomElementFrom('major', 'minor');
                         const degree = randomType === 'major' ? randomDegree.toUpperCase() : randomDegree.toLowerCase();
                         degrees.push(degree);
                     }
-                    return degrees;
+                    const result = degrees.join('-');
+                    return result;
                 }
 
             }
@@ -756,10 +757,27 @@
 
             class MusicCalculator {
 
+                static removeOctave(note) {
+                    return note.substring(0, 1) + note.substring(2);
+                }
+
                 static simplifyChordSequence(chords) {
                     let result = [chords[0]];
                     while (result.length < chords.length) {
+                        let simplifiedChord = [];
                         const last = result[result.length - 1];
+                        const next = chords[result.length];
+                        let nextBaseNotes = next.map(MusicCalculator.removeOctave);
+                        for (let i = 0; i < last.length; i++) {
+                            const lastRealNote = last[i];
+                            const lastBaseNote = MusicCalculator.removeOctave(lastRealNote);
+                            const index = nextBaseNotes.indexOf(lastBaseNote);
+                            if (index >= 0) {
+                                simplifiedChord.push(lastRealNote);
+                                nextBaseNotes = nextBaseNotes.slice(0, index).concat(nextBaseNotes.slice(index + 1));
+                            }
+                        }
+                        result.push(simplifiedChord);
                     }
                     return result;
                 }
@@ -783,16 +801,16 @@
                     return [lower, upper];
                 }
 
+                static getOstinatos() {
+                    return ["I-V-vi-IV"];
+                }
+
                 static getCadences() {
-                    return ["I-IV-V-I", "I-IV-vi-V"];
+                    return ["I-IV-V-I"];
                 }
 
-                static getAllCadences() {
-                    return ["I-IV-V-I", "I-IV-vi-V", "I-V-I", "I-IV-I", 'I-II-V-I', 'I-V-IV-I'];
-                }
-
-                static determineCadenceChords(cadence, baseNote) {
-                    const degrees = cadence.split('-');
+                static determineChordSequenceChords(sequence, baseNote) {
+                    const degrees = sequence.split('-');
                     const chords = degrees.map(degree => {
                         const degreeNumber = Namer.convertfromRomanNumber(degree);
                         const shift = degreeNumber - 1;
@@ -1146,8 +1164,8 @@
 
             class Namer {
 
-                static determineCadenceName(cadence) {
-                    switch (cadence) {
+                static determineChordSequenceName(sequence) {
+                    switch (sequence) {
                         case 'I-IV-V-I':
                             return 'klassischen Kadenz';
                         case 'I-IV-vi-V':
@@ -1646,18 +1664,18 @@
 
                 static randomizeQuestion() {
                     const next = Randomizer.getRandomElementFrom([
-                        Questions.askForKeyboardKey,
-                        Questions.askForNoteName, 
-                        Questions.askForInterval,
-                        Questions.askForChord, 
-                        Questions.askForIntervalHalfToneSize,
-                        Questions.askForValue, 
-                        Questions.askForConsonanceDegreeByIntervalName,
-                        Questions.askForIntervalInHalfTones,
-                        Questions.askForChordAtDegree,
-                        Questions.askForComplementaryInterval,
-                        Questions.askToCompleteMeasure,
-                        Questions.askToCompleteCadence
+                        // Questions.askForKeyboardKey,
+                        // Questions.askForNoteName, 
+                        // Questions.askForInterval,
+                        // Questions.askForChord, 
+                        // Questions.askForIntervalHalfToneSize,
+                        // Questions.askForValue, 
+                        // Questions.askForConsonanceDegreeByIntervalName,
+                        // Questions.askForIntervalInHalfTones,
+                        // Questions.askForChordAtDegree,
+                        // Questions.askForComplementaryInterval,
+                        // Questions.askToCompleteMeasure,
+                        Questions.askToCompleteChordSequence
                     ]);
                     const question = next();
                     return question;
@@ -1676,14 +1694,14 @@
 
             class Questions {
 
-                static askToCompleteCadence() {
+                static askToCompleteChordSequence() {
                     const clefs = MusicCalculator.getClefs();
                     const clef = Randomizer.getRandomElementFrom(clefs);
                     const range = MusicCalculator.determineReducedClefRange(clef);
-                    const cadences = MusicCalculator.getCadences();
-                    const cadence = Randomizer.getRandomElementFrom(cadences);
-                    const cadenceName = Namer.determineCadenceName(cadence);
-                    const chords = MusicRandomizer.randomizeCadenceChords(cadence, range);
+                    const sequences = MusicCalculator.getCadences().concat(MusicCalculator.getOstinatos());
+                    const sequence = Randomizer.getRandomElementFrom(sequences);
+                    const sequenceName = Namer.determineChordSequenceName(sequence);
+                    const chords = MusicRandomizer.randomizeChordSequenceChords(sequence, range);
                     const startChord = chords[0];
                     const questionDiagram = [{
                         element: 'clef',
@@ -1704,8 +1722,8 @@
                         diagram: answerDiagram
                     };
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
-                        const wrongCadence = MusicRandomizer.randomizeCadence();
-                        const wrongChords = MusicRandomizer.randomizeCadenceChords(cadence, range);
+                        const wrongSequence = MusicRandomizer.randomizeChordSequence();
+                        const wrongChords = MusicRandomizer.randomizeChordSequenceChords(wrongSequence, range);
                         const wrongAnswerChords = wrongChords.slice(1);
                         const wrongAnswerDiagram = [{
                             element: 'clef',
@@ -1718,7 +1736,7 @@
                     });
                     const result = {
                         question: {
-                            text: 'Welche Akkorde vervollständigen diesen Startakkord zur/m ' + cadenceName + '?',
+                            text: 'Welche Akkorde vervollständigen diesen Startakkord zur/m ' + sequenceName + '?',
                             diagram: questionDiagram
                         },
                         answers: answers,
