@@ -1168,7 +1168,7 @@
                     switch (sequence) {
                         case 'I-IV-V-I':
                             return 'klassischen Kadenz';
-                        case 'I-IV-vi-V':
+                        case 'I-V-vi-IV':
                             return '4-Chord-Turnaround';
                         default:
                             return 'unbekannt';
@@ -1242,10 +1242,12 @@
                     const formattedBaseNoteName = Namer.getGermanNoteNameWithoutOctave(baseNote);
                     const formattedChordType = type === 'major' ? 'Dur' : 'Moll';
                     let result = [formattedBaseNoteName, formattedChordType].join('-');
-                    if (inversion > 0) {
-                        result += ' (' + inversion + ". UK)";
-                    } else {
-                        result += ' (GS)';
+                    if (typeof inversion === 'number') {
+                        if (inversion > 0) {
+                            result += ' (' + inversion + ". UK)";
+                        } else {
+                            result += ' (GS)';
+                        }
                     }
                     return result;
                 }
@@ -1565,7 +1567,7 @@
                 }
 
                 static fadeOut(element, delay) {
-                    setTimeout(reduceOpacity, delay, element);
+                    setTimeout(Quiz.reduceOpacity, delay, element);
                 }
 
                 static correctAnswerPressed(event) {
@@ -1586,11 +1588,11 @@
                     }
                     state.next.push(state.question);
                     Quiz.setOpacityOfElementWithId("correct-answer-icon", 0);
-                    const wrongAnswerElement = setOpacityOfElementWithId("wrong-answer-icon", 1);
+                    const wrongAnswerElement = Quiz.setOpacityOfElementWithId("wrong-answer-icon", 1);
                     const correctAnswer = state.correctAnswer;
                     const correctAnswerElement = document.getElementById("answer-" + correctAnswer);
                     correctAnswerElement.style.backgroundColor = 'YellowGreen';
-                    fadeOut(wrongAnswerElement, 500);
+                    Quiz.fadeOut(wrongAnswerElement, 500);
                 }
 
                 static highlightAnswer(event) {
@@ -1698,8 +1700,9 @@
                     const clefs = MusicCalculator.getClefs();
                     const clef = Randomizer.getRandomElementFrom(clefs);
                     const range = MusicCalculator.determineReducedClefRange(clef);
-                    const sequences = MusicCalculator.getCadences().concat(MusicCalculator.getOstinatos());
-                    const sequence = Randomizer.getRandomElementFrom(sequences);
+                    const sequences = MusicCalculator.getCadences().map(entry => ({ type: 'cadence', sequence: entry })).concat(MusicCalculator.getOstinatos().map(entry => ({ type: 'ostinato', sequence: entry })));
+                    const correctSequence = Randomizer.getRandomElementFrom(sequences);
+                    const sequence = correctSequence.sequence;
                     const sequenceName = Namer.determineChordSequenceName(sequence);
                     const chords = MusicRandomizer.randomizeChordSequenceChords(sequence, range);
                     const startChord = chords[0];
@@ -1734,13 +1737,19 @@
                         };
                         return result;
                     });
+                    let explanation = "Gefragt ist nach " + (correctSequence.type === 'cadence' ? "der Kadenz" : "dem Ostinato") + " " + sequenceName + ", also der Akkordfolge " + correctSequence.sequence + ". ";
+                    explanation += "Der Startakkord ist ein " + Namer.getGermanChordName(startChord[0], 'major') + ". ";
+                    const parts = sequence.split('-').map((degree, i) => degree + ". = " + Namer.getGermanChordName(chords[i][0], 'major'));
+                    const degreeChords = [...new Set(parts)].join(", ");
+                    explanation += "Die gesuchten Akkorde sind demnach: " + degreeChords + ".";
                     const result = {
                         question: {
                             text: 'Welche Akkorde vervollständigen diesen Startakkord zur/m ' + sequenceName + '?',
                             diagram: questionDiagram
                         },
                         answers: answers,
-                        correctAnswer: correctAnswer
+                        correctAnswer: correctAnswer,
+                        explanation: explanation
                     }
                     return result;
                 }
