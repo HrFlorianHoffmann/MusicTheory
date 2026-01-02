@@ -465,6 +465,15 @@
                     SvgDrawer.drawPath(parent, d, usedColor, strokeWidth, 'none');
                 }
 
+                static drawSignNatural(parent, x, y, staff, color) {
+                    const offset = staff.lineDistance / 4, size = staff.lineDistance * 1.3, angleShift = 1, strokeWidth = staff.lineDistance / 5;
+                    const usedColor = typeof color === 'string' ? color : 'black';
+                    SvgDrawer.drawLine(parent, x - offset, y - size + (angleShift / 2), x - offset, y + offset + (angleShift / 2), usedColor, strokeWidth); // vertical left
+                    SvgDrawer.drawLine(parent, x + offset, y - offset - (angleShift / 2), x + offset, y + size - (angleShift / 2), usedColor, strokeWidth); // vertical right
+                    SvgDrawer.drawLine(parent, x - offset, y - offset + angleShift, x + offset, y - offset - angleShift, usedColor, strokeWidth); // horizontal top
+                    SvgDrawer.drawLine(parent, x - offset, y + offset + angleShift, x + offset, y + offset - angleShift, usedColor, strokeWidth); // horizontal bottom
+                }
+
                 static drawSign(parent, x, y, sign, staff, color) {
                     const signX = x - staff.lineDistance * 1.5;
                     switch (sign) {
@@ -473,6 +482,9 @@
                             break;
                         case 'b', 'B':
                             StaffDrawer.drawSignFlat(parent, signX, y, staff, color);
+                            break;
+                        case 'n', 'N':
+                            StaffDrawer.drawSignNatural(parent, signX, y, staff, color);
                             break;
                     }
                 }
@@ -569,7 +581,7 @@
                 }
 
                 static setSign(parent, note, x, staff, clef, color) {
-                    if (note.length > 2) {
+                    if (note.length > 2 && !note.endsWith('-')) {
                         const signGroup = SvgDrawer.addGroup(parent, 'sign-' + note);
                         const y = MusicCalculator.calculateNoteY(note, staff, clef);
                         for (let i = 2; i < note.length; i++) {
@@ -589,7 +601,7 @@
                     const x1 = (300 - width ) / 2;
                     const staff = { x1: x1, y1: 50, width: width, lineDistance: 10 };
                     StaffDrawer.drawStaff(parent, staff, 'gray');
-                    let clef = null;
+                    let clef = null, activeSigns = [];
                     for (let i = 0; i < content.length; i++) {
                         const x = x1 + elementWidth / 2 + i * elementWidth;
                         const element = content[i];
@@ -773,6 +785,67 @@
 
             class MusicCalculator {
 
+                static determineActiveSigns(noteOrChord) {
+                    const notes = MusicCalculator.getNotesOfChord(noteOrChord);
+                    const signedNotes = notes.filter(note => MusicCalculator.hasSign(note))
+                    const result = [... new Set(signedNotes.flatMap(note => MusicCalculator.removeOctave(note)))]
+                        .map(entry =>  ({ baseNote: entry.charAt(0), signedNote: entry, sign: entry.substring(1, entry.length) }));
+                    return result;
+                }
+
+                static getNotesOfChord(noteOrChord) {
+                    return typeof noteOrChord === 'string' ? [noteOrChord] : noteOrChord;
+                }
+
+                static determineEffectsOfActiveSigns(notes, activeSigns) {
+                    return notes.map(note => MusicCalculator.determineEffectOfActiveSigns(note, activeSigns));
+                }
+
+                static determineEffectOfActiveSigns(note, activeSigns) {
+                    let result = {
+                        actualNote: note,
+                        affectedBy: null,
+                        wouldBecome: note,
+                        toPreserveChangeTo: note,
+                        isIdentical: true
+                    }
+                    const baseNote = note.charAt(0), octaveNote = note.substring(0, 2);
+                    const relevantSigns = activeSigns.filter(entry => entry.baseNote === baseNote);
+                    if (MusicCalculator.hasSign(note)) {
+                        const actualSign = note.substring(2);
+                        for (let i = 0; i < relevantSigns.length; i++) {
+                            const activeSign = relevantSigns[i];
+                            if (activeSign.sign === actualSign) {
+                                result.affectedBy = activeSign;
+                                result.toPreserveChangeTo = note + "-";
+                                result.isIdentical = true;
+                            }
+                        }
+                    } else {
+                        for (let i = 0; i < relevantSigns.length; i++) {
+                            const activeSign = relevantSigns[i];
+                            result.affectedBy = activeSign;
+                            result.wouldBecome = octaveNote + activeSign.sign;
+                            result.toPreserveChangeTo = octaveNote + "N";
+                            result.isIdentical = false;
+                        }
+                    }
+                    return result;
+                }
+
+                static adjustForActiveSigns(sequence) {
+                    let result = [sequence[0]], activeSigns = MusicCalculator.determineActiveSigns(sequence[0]);
+                    for (let i = 1; i < sequence.length; i++) {
+                        const last = sequence[i - 1], current = sequence[i];
+                        const notes = MusicCalculator.getNotesOfChord(current);
+                        const signEffects = MusicCalculator.determineEffectsOfActiveSigns(notes, activeSigns);
+                        const adjustedNotes = signEffects.map(entry => entry.toPreserveChangeTo);
+                        const next = adjustedNotes.length === 1 ? adjustedNotes[0] : adjustedNotes;
+                        result.push(next);
+                    }
+                    return result;
+                }
+
                 static removeOctave(note) {
                     return note.substring(0, 1) + note.substring(2);
                 }
@@ -784,7 +857,7 @@
                         const next = chords[i];
                         const different = MusicCalculator.distinguishSameDifferentNotes(last, next);
                         const transposedNotes = different.onlyInB.map(note => MusicCalculator.calculateNearestOctaveNote(note, different.onlyInA));
-                        const simplifiedChord = different.same.concat(transposedNotes);
+                        const simplifiedChord = different.same.concat(transposedNotes).sort();
                         result.push(simplifiedChord);
                         i++;
                     }
@@ -997,7 +1070,11 @@
                     for (let i = inversion; i > 0; i--) {
                         result = result.slice(1).concat([MusicCalculator.transposeOctaves(result[0], 1)]);
                     }
-                    return result;
+                    return result.sort();
+                }
+
+                static transposeNotesOctaves(notes, octaves) {
+                    return notes.map(note => MusicCalculator.transposeOctaves(note, octaves)).sort();
                 }
 
                 static transposeOctaves(note, octaves) {
@@ -1072,9 +1149,10 @@
                     const baseNotes = [baseNote].concat(MusicCalculator.getAllOctaveNotes().filter(note => note.startsWith(baseNote.charAt(0))));
                     const inversions = [0, 1, 2];
                     let chord = ['C0'], i = 0, j = 0;
-                    while (!areNotesInRange(chord, range)) {
-                        const currentBaseNote = baseNotes[i];
-                        chord = buildTriad(currentBaseNote, type);
+                    while (!MusicCalculator.areNotesInRange(chord, range)) {
+                        const currentBaseNote = baseNotes[i], inversion = inversions[j];
+                        chord = MusicCalculator.buildTriad(currentBaseNote, type);
+                        chord = MusicCalculator.invertChordWithinRange(chord, range, inversion);
                         if (j === 2) {
                             j = 0;
                             i++;
@@ -1731,7 +1809,8 @@
                         Questions.askForChordAtDegree,
                         Questions.askForComplementaryInterval,
                         Questions.askToCompleteMeasure,
-                        Questions.askToCompleteChordSequence
+                        Questions.askToCompleteChordSequence,
+                        Questions.askToContinueAccompaniment
                     ]);
                     const question = next();
                     return question;
@@ -1750,6 +1829,107 @@
 
             class Questions {
 
+                static askToContinueAccompaniment() {
+                    const clefs = MusicCalculator.getClefs();
+                    const clef = Randomizer.getRandomElementFrom(clefs);
+                    const range = MusicCalculator.determineReducedClefRange(clef);
+                    let unadjustedQuestionSequence = [];
+                    while (unadjustedQuestionSequence.length < 2 || JSON.stringify(unadjustedQuestionSequence[0]) == JSON.stringify(unadjustedQuestionSequence[1])) {
+                        for (let i = 0; i < 2; i++) {
+                            const chord = MusicRandomizer.randomizeChord(range, [''], ['major', 'minor']);
+                            unadjustedQuestionSequence[i] = MusicCalculator.buildTriad(chord.baseNote, chord.chordType, range);
+                        }
+                    }
+                    const questionSequence = MusicCalculator.adjustForActiveSigns(unadjustedQuestionSequence);
+                    const questionDiagram = [{
+                        element: 'clef',
+                        type: clef
+                    }, {
+                        element: 'chord',
+                        notes: questionSequence[0],
+                        value: '1/4'
+                    }, {
+                        element: 'chord',
+                        notes: questionSequence[1],
+                        color: 'red',
+                        value: '1/4'
+                    }];
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    const answerSequence = MusicCalculator.simplifyChordSequence(questionSequence);
+                    const answerDiagram = [{
+                        element: 'clef',
+                        type: clef
+                    }, {
+                        element: 'chord',
+                        notes: answerSequence[0],
+                        value: '1/4'
+                    }, {
+                        element: 'chord',
+                        notes: answerSequence[1],
+                        color: 'red',
+                        value: '1/4'
+                    }];
+                    answers[correctAnswer] = {
+                        diagram: answerDiagram
+                    };
+                    const simplifiedWrongAnswerSequence = MusicCalculator.simplifyChordSequence(unadjustedQuestionSequence);
+                    if (JSON.stringify(answerSequence) != JSON.stringify(simplifiedWrongAnswerSequence)) {
+                        let wrongDefiniteAnswer = correctAnswer;
+                        while (wrongDefiniteAnswer === correctAnswer) {
+                            wrongDefiniteAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                        }
+                        const wrongDefiniteDiagram = [{
+                            element: 'clef',
+                            type: clef
+                        }, {
+                            element: 'chord',
+                            notes: simplifiedWrongAnswerSequence[0],
+                            value: '1/4'
+                        }, {
+                            element: 'chord',
+                            notes: simplifiedWrongAnswerSequence[1],
+                            color: 'red',
+                            value: '1/4'
+                        }];
+                        answers[wrongDefiniteAnswer] = {
+                            diagram: wrongDefiniteDiagram
+                        };
+                    }
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
+                        const variation = Randomizer.getRandomElementFrom([[0, 0], [1, 0], [2, 0], [2, -1]]);
+                        const changedChord = MusicCalculator.transposeNotesOctaves(MusicCalculator.invertTriad(questionSequence[1], variation[0]), variation[1]);
+                        const seq = questionSequence.slice(0, 1).concat([changedChord]);
+                        const diag = [{
+                            element: 'clef',
+                            type: clef
+                        }, {
+                            element: 'chord',
+                            notes: seq[0],
+                            value: '1/4'
+                        }, {
+                            element: 'chord',
+                            notes: seq[1],
+                            color: 'red',
+                            value: '1/4'
+                        }];
+                        const result = {
+                            diagram: diag
+                        };
+                        return result;
+                    });
+                    const result = {
+                        question: {
+                            text: 'Welche Form des zweiten Akkords setzt den ersten Akkord am leichtesten spielbar fort?',
+                            diagram: questionDiagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation: explanation
+                    }
+                    return result;
+                }
+
                 static askToCompleteChordSequence() {
                     const clefs = MusicCalculator.getClefs();
                     const clef = Randomizer.getRandomElementFrom(clefs);
@@ -1761,7 +1941,8 @@
                     const rawChords = MusicRandomizer.randomizeChordSequenceChords(sequence, range);
                     const baseNote = rawChords[0][0];
                     const simplify = Randomizer.getRandomElementFrom([true, false]);
-                    const chords = simplify ? MusicCalculator.simplifyChordSequence(rawChords) : rawChords;
+                    const unadjustedChords = simplify ? MusicCalculator.simplifyChordSequence(rawChords) : rawChords;
+                    const chords = MusicCalculator.adjustForActiveSigns(unadjustedChords);
                     const startChord = chords[0];
                     const questionDiagram = [{
                         element: 'clef',
@@ -1785,7 +1966,8 @@
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
                         const wrongSequence = MusicRandomizer.randomizeChordSequence(3) + "-" + lastDegreeInCorrectSequence;
                         const wrongRawChords = MusicCalculator.determineChordSequenceChords(wrongSequence, baseNote);
-                        const wrongChords = simplify ? MusicCalculator.simplifyChordSequence(wrongRawChords) : wrongRawChords;
+                        const wrongUnadjustedChords = simplify ? MusicCalculator.simplifyChordSequence(wrongRawChords) : wrongRawChords;
+                        const wrongChords = MusicCalculator.adjustForActiveSigns(wrongUnadjustedChords);
                         const wrongAnswerDiagram = [{
                             element: 'clef',
                             type: clef
