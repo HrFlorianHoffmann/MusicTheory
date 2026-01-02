@@ -1956,12 +1956,12 @@
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: interval.name };
-                    const tricky = Randomizer.getRandomElementFrom(true, false);
+                    const tricky = Randomizer.getRandomElementFrom([true, false]);
                     const similarIntervals = MusicRandomizer.determineSimilarIntervals(interval.name).map(entry => entry.intervalName);
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
                         const result = tricky 
-                            ? { text: Namer.randomizePreciseIntervalName() }
-                            : { text: Randomizer.getRandomElementFrom(similarIntervals) }
+                            ? { text: Randomizer.getRandomElementFrom(similarIntervals) }
+                            : { text: Namer.randomizePreciseIntervalName() }
                         return result;
                     });
                     const result = {
