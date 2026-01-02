@@ -46,6 +46,11 @@
         <div id="answer-section" width="800" align="center">
             <table>
                 <tr>
+                    <td id ="reveal-answers" class="answer" align="center" colspan="2">
+                        <p id="reveal-answers-text"><br/>Ich weiß es!<br/><br/></p>
+                    </td>
+                </tr>
+                <tr>
                     <td id="answer-1" class="answer" align="center">
                         <p id="answer-text-1">Answer 1</p>
                         <svg id="answer-diagram-1" width="300" height="150"></svg>
@@ -1727,6 +1732,14 @@
                     Quiz.fadeOut(wrongAnswerElement, 500);
                 }
 
+                static revealAnswersPressed(event) {
+                    Quiz.setOpacityOfElementWithId("reveal-answers", 0);
+                    for (let i = 1; i <= 4; i++) {
+                        const id = "answer-" + i;
+                        Quiz.setOpacityOfElementWithId(id, 1);
+                    }
+                }
+
                 static highlightAnswer(event) {
                     event.srcElement.style.backgroundColor = 'gold';
                 }
@@ -1736,20 +1749,32 @@
                 }
 
                 static setEventListeners(correctAnswer) {
+                    const useRevealButton = Randomizer.getRandomElementFrom([true, false]);
                     state.correctAnswer = correctAnswer;
                     for (let i = 1; i <= 4; i++) {
-                        const element = document.getElementById("answer-" + i);
+                        const id = "answer-" + i;
+                        const element = document.getElementById(id);
                         element.style.backgroundColor = 'rgb(211, 228, 255)';
                         const attachedFunction = i === correctAnswer ? Quiz.correctAnswerPressed : Quiz.wrongAnswerPressed;
                         element.removeEventListener("click", Quiz.correctAnswerPressed);
                         element.removeEventListener("click", Quiz.wrongAnswerPressed);
                         element.addEventListener("click", attachedFunction);
-                        const elements = document.getElementsByClassName("answer");
-                        for (let i = 0; i < elements.length; i++) {
-                            const element = elements[i];
-                            element.addEventListener("mouseenter", Quiz.highlightAnswer);
-                            element.addEventListener("mouseleave", Quiz.unhighlightAnswer);
+                        if (useRevealButton) {
+                            Quiz.setOpacityOfElementWithId(id, 0);
                         }
+                    }
+                    const elements = document.getElementsByClassName("answer");
+                    for (let i = 0; i < elements.length; i++) {
+                        const element = elements[i];
+                        element.addEventListener("mouseenter", Quiz.highlightAnswer);
+                        element.addEventListener("mouseleave", Quiz.unhighlightAnswer);
+                    }
+                    if (useRevealButton) {
+                        Quiz.setOpacityOfElementWithId("reveal-answers", 1);
+                        const element = document.getElementById("reveal-answers");
+                        element.addEventListener("click", Quiz.revealAnswersPressed);
+                    } else {
+                        Quiz.setOpacityOfElementWithId("reveal-answers", 0);
                     }
                 }
 
@@ -1918,6 +1943,7 @@
                         };
                         return result;
                     });
+                    let explanation = "Um Akkorde leicht zu spielen, lässt man soviele Noten wie möglich liegen, und verschiebe alle anderen so, dass sie möglichst nahe an den Noten des vorhergehenden Akkord liegen. ";
                     const result = {
                         question: {
                             text: 'Welche Form des zweiten Akkords setzt den ersten Akkord am leichtesten spielbar fort?',
