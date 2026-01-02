@@ -674,6 +674,14 @@
 
             class MusicRandomizer {
 
+                static determineSimilarIntervals(intervalName) {
+                    const allIntervals = Namer.determineIntervals();
+                    const interval = allIntervals.filter(entry => entry.intervalName == intervalName)[0];
+                    const result = allIntervals.filter(entry => entry.intervalName != intervalName)
+                        .filter(entry => entry.baseIntervalName === interval.baseIntervalName || entry.halfTones === interval.halfTones);
+                    return result;
+                }
+
                 static randomizeNoteBetween(min, max, signs) {
                     const allOctaveNotes = MusicCalculator.getAllOctaveNotes();
                     const minIndex = allOctaveNotes.indexOf(min);
@@ -709,6 +717,7 @@
                     }
                     const result = {
                         name: interval,
+                        baseIntervalName: MusicCalculator.calculateBaseIntervalName(note1, note2),
                         note1: note1,
                         note2: note2
                     }
@@ -1347,8 +1356,7 @@
                         },
                         'Oktave': {
                             11: 'verminderte',
-                            12: '',
-                            13: 'übermäßige'
+                            12: ''
                         }
                     }
                 }
@@ -1583,7 +1591,8 @@
                     for (let i = 0; i < answers.length; i++) {
                         if (result[i] === null) {
                             let wrongAnswer = null;
-                            while (wrongAnswer === null || result.map(entry => convertForComparison(entry)).indexOf(convertForComparison(wrongAnswer)) >= 0) {
+                            const convertedResults = result.filter(entry => !!entry).map(entry => convertForComparison(entry));
+                            while (wrongAnswer === null || convertedResults.indexOf(convertForComparison(wrongAnswer)) >= 0) {
                                 wrongAnswer = randomizeWrongAnswer();
                             }
                             result[i] = wrongAnswer;
@@ -1771,8 +1780,10 @@
                     answers[correctAnswer] = {
                         diagram: answerDiagram
                     };
+                    const degreesInCorrectSequence = sequence.split('-');
+                    const lastDegreeInCorrectSequence = degreesInCorrectSequence[degreesInCorrectSequence.length - 1];
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
-                        const wrongSequence = MusicRandomizer.randomizeChordSequence(4);
+                        const wrongSequence = MusicRandomizer.randomizeChordSequence(3) + "-" + lastDegreeInCorrectSequence;
                         const wrongRawChords = MusicCalculator.determineChordSequenceChords(wrongSequence, baseNote);
                         const wrongChords = simplify ? MusicCalculator.simplifyChordSequence(wrongRawChords) : wrongRawChords;
                         const wrongAnswerDiagram = [{
@@ -1945,7 +1956,14 @@
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: interval.name };
-                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => ({ text: Namer.randomizePreciseIntervalName() }));
+                    const tricky = Randomizer.getRandomElementFrom(true, false);
+                    const similarIntervals = MusicRandomizer.determineSimilarIntervals(interval.name).map(entry => entry.intervalName);
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
+                        const result = tricky 
+                            ? { text: Namer.randomizePreciseIntervalName() }
+                            : { text: Randomizer.getRandomElementFrom(similarIntervals) }
+                        return result;
+                    });
                     const result = {
                         question: {
                             text: "Wie heißt dieses Intervall?",
@@ -1963,8 +1981,17 @@
                     const complementaryInterval = MusicCalculator.determineComplementaryInterval(interval);
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                    answers[correctAnswer] = { text: complementaryInterval.intervalName };
-                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => ({ text: Randomizer.getRandomElementFrom(intervals).intervalName }));
+                    answers[correctAnswer] = { 
+                        text: complementaryInterval.intervalName,
+                        halfTones: complementaryInterval.halfTones
+                    };
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
+                            const wrongInterval = Randomizer.getRandomElementFrom(intervals);
+                            return { text: wrongInterval.intervalName, halfTones: wrongInterval.halfTones };
+                        },
+                        (answer) => {
+                            return answer.halfTones
+                        });
                     let explanation = "Das prinzipielle Komplementär zur " + interval.baseIntervalName + " ist die " + complementaryInterval.baseIntervalName + ". ";
                     explanation += "Da das Original-Intervall eine " + interval.qualifier + " Größe hat, hat das Komplementär die gegenteilige Größe, also eine " + complementaryInterval.qualifier + ". ";
                     explanation += "Die " + interval.intervalName + " umfasst " + interval.halfTones + " Halbtonschritte, sein Komplementär " + complementaryInterval.intervalName + " " + complementaryInterval.halfTones + " Halbtonschritte - in Summe immer 12.";
