@@ -21,65 +21,62 @@
             .answer {
                 background-color: rgb(211, 228, 255);
             }
+            #statistics-section {
+                background-color: #e3e3e3;
+            }
+            #reveal-answers {
+                visibility: hidden
+            }
         </style>
-        <div id="question-section" widtasdasdh="800" align="center">
+        <div id="main-section" width="1200" align="center">
             <table>
                 <tr>
-                    <td id="wrong-answer-icon" align="center" style="opacity: 0">
+                    <td width="10%" rowspan="5">
+                        
+                    </td>
+                    <td id="wrong-answer-icon" width="5%" align="center" style="opacity: 0;">
                         <p style="font-size: 48pt;">❌</p>
                     </td>
-                    <td id="question-cell" align="center" >
-                        <p id="question-text">Hi! This is the question.</p>
+                    <td id="question-cell" width="70%" align="center" colspan="2">
+                        <p id="question-text">Hier erscheint die Frage.</p>
                         <svg id="question-diagram" width="300" height="150"></svg>
                     </td>
-                    <td id="correct-answer-icon" align="center" style="opacity: 0">
+                    <td id="correct-answer-icon" width="5%" align="center" style="opacity: 0;">
                         <p style="font-size: 48pt;">✅</p>
+                    </td>
+                    <td id="statistics-section" width="10%" rowspan="5" align="center" style="vertical-align: top;">
+                        <p id="correct-stat">Richtig: </p>
+                        <p id="wrong-stat">Falsch: </p>
                     </td>
                 </tr>
                 <tr>
-                    <td id="explanation-section" colspan="3" width="600">
+                    <td id="explanation-section" colspan="4">
                         <p id="explanation" style="text-align: justify; font-size: 10pt;"></p>
                     </td>
                 </tr>
-            </table>
-        </div>
-        <div id="answer-section" width="800" align="center">
-            <table>
                 <tr>
-                    <td id ="reveal-answers" class="answer" align="center" colspan="2">
+                    <td id ="reveal-answers" visible="false" class="answer" align="center" colspan="4">
                         <p id="reveal-answers-text"><br/>Ich weiß es!<br/><br/></p>
                     </td>
                 </tr>
                 <tr>
-                    <td id="answer-1" class="answer" align="center">
+                    <td id="answer-1" colspan="2" width="40%" class="answer" align="center">
                         <p id="answer-text-1">Answer 1</p>
                         <svg id="answer-diagram-1" width="300" height="150"></svg>
                     </td>
-                    <td id="answer-2" class="answer" align="center">
+                    <td id="answer-2" colspan="2" width="40%" class="answer" align="center">
                         <p id="answer-text-2">Answer 2</p>
                         <svg id="answer-diagram-2" width="300" height="150"></svg>
                     </td>
                 </tr>
                 <tr>
-                    <td id="answer-3" class="answer"  align="center">
+                    <td id="answer-3" colspan="2" width="40%" class="answer"  align="center">
                         <p id="answer-text-3">Answer 3</p>
                         <svg id="answer-diagram-3" width="300" height="150"></svg>
                     </td>
-                    <td id="answer-4" class="answer" align="center">
+                    <td id="answer-4" colspan="2" width="40%" class="answer" align="center">
                         <p id="answer-text-4">Answer 4</p>
                         <svg id="answer-diagram-4" width="300" height="150"></svg>
-                    </td>
-                </tr>
-            </table>
-        </div>
-        <div id="statistics-section" width="800" align="center">
-            <table>
-                <tr>
-                    <td width="300" align="center">
-                        <p id="correct-stat">Richtig: </p>
-                    </td>
-                    <td width="300" align="center">
-                        <p id="wrong-stat">Falsch: </p>
                     </td>
                 </tr>
             </table>
@@ -1684,6 +1681,13 @@
                     return result;
                 }
 
+                static setVisibilityOfElementWithId(id, visible) {
+                    const element = document.getElementById(id);
+                    const value = visible ? 'visible' : 'hidden';
+                    element.style.visibility = value;
+                    return element;
+                }
+
                 static setOpacityOfElementWithId(id, opacity) {
                     const element = document.getElementById(id);
                     Quiz.setOpacity(element, opacity);
@@ -1733,10 +1737,10 @@
                 }
 
                 static revealAnswersPressed(event) {
-                    Quiz.setOpacityOfElementWithId("reveal-answers", 0);
+                    Quiz.setVisibilityOfElementWithId("reveal-answers", false);
                     for (let i = 1; i <= 4; i++) {
                         const id = "answer-" + i;
-                        Quiz.setOpacityOfElementWithId(id, 1);
+                        Quiz.setVisibilityOfElementWithId(id, true);
                     }
                 }
 
@@ -1760,7 +1764,7 @@
                         element.removeEventListener("click", Quiz.wrongAnswerPressed);
                         element.addEventListener("click", attachedFunction);
                         if (useRevealButton) {
-                            Quiz.setOpacityOfElementWithId(id, 0);
+                            Quiz.setVisibilityOfElementWithId(id, false);
                         }
                     }
                     const elements = document.getElementsByClassName("answer");
@@ -1770,11 +1774,11 @@
                         element.addEventListener("mouseleave", Quiz.unhighlightAnswer);
                     }
                     if (useRevealButton) {
-                        Quiz.setOpacityOfElementWithId("reveal-answers", 1);
+                        Quiz.setVisibilityOfElementWithId("reveal-answers", true);
                         const element = document.getElementById("reveal-answers");
                         element.addEventListener("click", Quiz.revealAnswersPressed);
                     } else {
-                        Quiz.setOpacityOfElementWithId("reveal-answers", 0);
+                        Quiz.setVisibilityOfElementWithId("reveal-answers", false);
                     }
                 }
 
