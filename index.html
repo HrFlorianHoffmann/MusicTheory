@@ -791,11 +791,15 @@
 
             class MusicCalculator {
 
-                static determineActiveSigns(noteOrChord) {
+                static determineActiveSigns(noteOrChord, previousActiveSigns) {
                     const notes = MusicCalculator.getNotesOfChord(noteOrChord);
                     const signedNotes = notes.filter(note => MusicCalculator.hasSign(note))
-                    const result = [... new Set(signedNotes.flatMap(note => MusicCalculator.removeOctave(note)))]
+                    const newActiveSigns = signedNotes.flatMap(note => MusicCalculator.removeOctave(note))
                         .map(entry =>  ({ baseNote: entry.charAt(0), signedNote: entry, sign: entry.substring(1, entry.length) }));
+                    const remainingPreviousActiveSigns = previousActiveSigns.filter(entry => newActiveSigns.indexOf(candidate => candidate.baseNote === entry.baseNote) < 0);
+                    const allActiveSigns = remainingPreviousActiveSigns.concat(newActiveSigns);
+                    const result = [... new Set(allActiveSigns)];
+                    console.log("Combined chord " + JSON.stringify(noteOrChord) + " with " + JSON.stringify(previousActiveSigns) + " to " + JSON.stringify(result));
                     return result;
                 }
 
@@ -840,7 +844,7 @@
                 }
 
                 static adjustForActiveSigns(sequence) {
-                    let result = [sequence[0]], activeSigns = MusicCalculator.determineActiveSigns(sequence[0]);
+                    let result = [sequence[0]], activeSigns = MusicCalculator.determineActiveSigns(sequence[0], []);;
                     for (let i = 1; i < sequence.length; i++) {
                         const last = sequence[i - 1], current = sequence[i];
                         const notes = MusicCalculator.getNotesOfChord(current);
@@ -848,6 +852,7 @@
                         const adjustedNotes = signEffects.map(entry => entry.toPreserveChangeTo);
                         const next = adjustedNotes.length === 1 ? adjustedNotes[0] : adjustedNotes;
                         result.push(next);
+                        activeSigns = MusicCalculator.determineActiveSigns(next, activeSigns);
                     }
                     return result;
                 }
