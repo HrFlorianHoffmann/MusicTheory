@@ -775,11 +775,12 @@
                     let degrees = ['I'];
                     while (degrees.length < length) {
                         const randomDegree = Namer.convertToRomanNumber(Randomizer.randomizeNumberBetween(1, 7));
-                        const randomType = Randomizer.getRandomElementFrom('major', 'minor');
-                        const degree = randomType === 'major' ? randomDegree.toUpperCase() : randomDegree.toLowerCase();
+                        const type = ['I', 'IV', 'V'].indexOf(randomDegree) >= 0 ? 'major' : 'minor';
+                        const degree = type === 'major' ? randomDegree.toUpperCase() : randomDegree.toLowerCase();
                         degrees.push(degree);
                     }
                     const result = degrees.join('-');
+                    console.log("Randomized chord sequence " + result);
                     return result;
                 }
 
@@ -799,7 +800,6 @@
                     const remainingPreviousActiveSigns = previousActiveSigns.filter(entry => newActiveSigns.indexOf(candidate => candidate.baseNote === entry.baseNote) < 0);
                     const allActiveSigns = remainingPreviousActiveSigns.concat(newActiveSigns);
                     const result = [... new Set(allActiveSigns)];
-                    console.log("Combined chord " + JSON.stringify(noteOrChord) + " with " + JSON.stringify(previousActiveSigns) + " to " + JSON.stringify(result));
                     return result;
                 }
 
@@ -948,16 +948,26 @@
                 }
 
                 static determineChordSequenceChords(sequence, baseNote) {
+                    const degreeHalfTonesInMajorScale = [0, 2, 4, 5, 7, 9, 11, 12];
                     const degrees = sequence.split('-');
                     const chords = degrees.map(degree => {
                         const degreeNumber = Namer.convertfromRomanNumber(degree);
                         const shift = degreeNumber - 1;
-                        const chordBaseNote = MusicCalculator.determineNoteRelativeTo(baseNote, shift);
-                        const type = degree === degree.toUpperCase() ? 'major' : 'minor';
+                        const halfTones = degreeHalfTonesInMajorScale[shift];
+                        const chordBaseNote = MusicCalculator.determineNoteRelativeTo(baseNote, shift, halfTones);
+                        const type = MusicCalculator.determineChordTypeFromDegree(degree);
                         const result = MusicCalculator.buildTriad(chordBaseNote, type);
                         return result;
                     });
                     return chords;
+                }
+
+                static determineChordTypeFromDegree(degree) {
+                    const normalizedDegree = degree.toUpperCase();
+                    if (normalizedDegree === 'VII') {
+                        return 'diminished';
+                    }
+                    return degree === normalizedDegree ? 'major' : 'minor';
                 }
 
                 static listNotesInKey(key) {
@@ -1150,10 +1160,21 @@
 
 
                 static buildTriad(baseNote, type) {
-                    const middleHalfTonesDiff = type === 'major' ? 4 : 3;
-                    const middle = MusicCalculator.determineNoteRelativeTo(baseNote, 2, middleHalfTonesDiff);
-                    const top = MusicCalculator.determineNoteRelativeTo(baseNote, 4, 7);
+                    const halfTones = MusicCalculator.determineHalfTonesDifferenceForChordType(type);
+                    const middle = MusicCalculator.determineNoteRelativeTo(baseNote, 2, halfTones[0]);
+                    const top = MusicCalculator.determineNoteRelativeTo(baseNote, 4, halfTones[1]);
                     return [baseNote, middle, top];
+                }
+
+                static determineHalfTonesDifferenceForChordType(type) {
+                    switch (type) {
+                        case 'minor':
+                            return [3, 7];
+                        case 'diminished':
+                            return [3, 6];
+                        default:
+                            return [4, 7];
+                    }
                 }
 
                 static buildTriadInRange(baseNote, type, range) {
@@ -2185,9 +2206,13 @@
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: interval.name };
                     const tricky = Randomizer.getRandomElementFrom([true, false]);
-                    const similarIntervals = MusicRandomizer.determineSimilarIntervals(interval.name).map(entry => entry.intervalName);
+                    const numUnfilledAnswers = answers.filter(entry => entry === null).length;
+                    let similarIntervals = MusicRandomizer.determineSimilarIntervals(interval.name).map(entry => entry.intervalName);
+                    while (similarIntervals.length < numUnfilledAnswers) {
+                        similarIntervals.push(Namer.randomizePreciseIntervalName());
+                    }
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
-                        const result = tricky 
+                        const result = tricky
                             ? { text: Randomizer.getRandomElementFrom(similarIntervals) }
                             : { text: Namer.randomizePreciseIntervalName() }
                         return result;
