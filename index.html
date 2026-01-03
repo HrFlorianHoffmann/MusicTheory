@@ -45,8 +45,12 @@
                         <p style="font-size: 48pt;">✅</p>
                     </td>
                     <td id="statistics-section" width="10%" rowspan="5" align="center" style="vertical-align: top;">
-                        <p id="correct-stat">Richtig: </p>
-                        <p id="wrong-stat">Falsch: </p>
+                        <p>Frage:</p>
+                        <p id="total-stat">0</p>
+                        <p>Richtig:</p>
+                        <p id="correct-stat">0</p>
+                        <p>Falsch:</p>
+                        <p id="wrong-stat">0</p>
                     </td>
                 </tr>
                 <tr>
@@ -1712,7 +1716,9 @@
                 }
 
                 static correctAnswerPressed(event) {
-                    statistics.correctAnswers++;
+                    if (!state.failed) {
+                        statistics.correctAnswers++;
+                    }
                     Quiz.updateStatistics();
                     document.getElementById("explanation").innerHTML = "";
                     Quiz.setOpacityOfElementWithId("wrong-answer-icon", 0);
@@ -1722,6 +1728,7 @@
                 }
 
                 static wrongAnswerPressed(event) {
+                    state.failed = true;
                     statistics.wrongAnswers++;
                     Quiz.updateStatistics();
                     if (state.question.explanation) {
@@ -1794,6 +1801,7 @@
                 }
 
                 static reset() {
+                    state.failed = false;
                     state.question = null;
                     Quiz.removeAllChildrenOfElementWithId('question-text');
                     Quiz.removeAllChildrenOfElementWithId('question-diagram');
@@ -1823,6 +1831,8 @@
                     const nextQuestion = state.next[0];
                     state.next = state.next.slice(1);
                     Quiz.askQuestion(nextQuestion);
+                    statistics.numQuestions++;
+                    Quiz.updateStatistics();
                 }
 
                 static randomizeQuestion() {
@@ -1846,8 +1856,9 @@
                 }
 
                 static updateStatistics() {
-                    document.getElementById("correct-stat").textContent = "Richtig: " + statistics.correctAnswers;
-                    document.getElementById("wrong-stat").textContent = "Falsch: " + statistics.wrongAnswers;
+                    document.getElementById("total-stat").textContent = "" + statistics.numQuestions;
+                    document.getElementById("correct-stat").textContent = "" + statistics.correctAnswers;
+                    document.getElementById("wrong-stat").textContent = "" + statistics.wrongAnswers;
                 }
 
             }
@@ -2529,10 +2540,12 @@
 
             let state = {
                 question: null,
-                next: []
+                next: [],
+                failed: false
             }
 
             let statistics = {
+                numQuestions: 0,
                 correctAnswers: 0,
                 wrongAnswers: 0
             }
