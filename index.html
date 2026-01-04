@@ -780,7 +780,6 @@
                         degrees.push(degree);
                     }
                     const result = degrees.join('-');
-                    console.log("Randomized chord sequence " + result);
                     return result;
                 }
 
@@ -1011,6 +1010,17 @@
                         case "bass":
                             return { note: 'F3', shift: 2 };
                     }
+                }
+
+                static determineNoteRelativeToAndInRange(note, diff, range) {
+                    const step = diff > 0 ? -1 : 1;
+                    for (let d = diff; d != 0; d += step) {
+                        const result = MusicCalculator.determineNoteRelativeTo(note, d);
+                        if (MusicCalculator.isNoteInRange(result, range)) {
+                            return result;
+                        }
+                    }
+                    return note;
                 }
 
                 static determineNoteRelativeTo(note, diff, halfTones) {
@@ -1862,7 +1872,7 @@
                 }
 
                 static randomizeQuestion() {
-                    const next = Randomizer.getRandomElementFrom([
+                    const questionTypes = [
                         Questions.askForKeyboardKey,
                         Questions.askForNoteName, 
                         Questions.askForInterval,
@@ -1876,7 +1886,13 @@
                         Questions.askToCompleteMeasure,
                         Questions.askToCompleteChordSequence,
                         Questions.askToContinueAccompaniment
-                    ]);
+                    ];
+                    const nextIndex = Randomizer.randomizeNumberBetween(0, questionTypes.length - 1);
+                    if (!state.asked[nextIndex]) {
+                        state.asked[nextIndex] = 0;
+                    }
+                    state.asked[nextIndex]++;
+                    const next = questionTypes[nextIndex];
                     const question = next();
                     return question;
                 }
@@ -2065,7 +2081,8 @@
                 }
 
                 static askForKeyboardKey() {
-                    const note = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                    const range = ['C4', 'H4'];
+                    const note = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
                     const keyboardKey = getNormalizedKeyboardKeyName(note);
                     const noteName = Namer.getGermanNoteNameWithoutOctave(note);
                     const fromNote = 'A3#', toNote = 'C5#';
@@ -2080,8 +2097,16 @@
                             markedNotes: markedNotes
                         }
                     };
+                    const tricky = Randomizer.getRandomElementFrom([true, true, false]);
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
-                        const randomMarkedNote = MusicRandomizer.randomizeNoteBetween('C4', 'H4', ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                        let lower = range[0], upper = range[1], signs = ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB'];
+                        if (tricky) {
+                            signs = [MusicCalculator.hasSign(note) ? note.substring(2) : ''];
+                        }
+                        let randomMarkedNote = 'C0';
+                        while (!MusicCalculator.isNoteInRange(randomMarkedNote, range)) {
+                            randomMarkedNote = MusicRandomizer.randomizeNoteBetween(lower, upper, signs);
+                        }
                         const randomMarkedKeyboardKey = getNormalizedKeyboardKeyName(randomMarkedNote);
                         const randomMarkedNotes = keyboardKeys.filter(key => key === randomMarkedKeyboardKey);
                         const result = {
@@ -2145,7 +2170,9 @@
                         type: clef
                     });
                     const range = ranges[clef];
-                    const note = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '', '', '#', '#', 'B', 'B', '##', 'BB']);
+                    const tricky = Randomizer.getRandomElementFrom([true, true, false]);
+                    const signs = tricky ? ['', '#', 'B', '##', 'BB', 'N'] : ['', '', '', '#', '#', 'B', 'B', '##', 'BB'];
+                    const note = MusicRandomizer.randomizeNoteBetween(range[0], range[1], signs);
                     diagram.push({
                         element:'note',
                         note: note,
@@ -2155,7 +2182,13 @@
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: Namer.getGermanNoteName(note) };
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
-                        const randomAnswer = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
+                        let lower = range[0], upper = range[1];
+                        if (tricky) {
+                            lower = MusicCalculator.determineNoteRelativeTo(note, -2);
+                            upper = MusicCalculator.determineNoteRelativeTo(note, 2);
+                        }
+                        const sign = [MusicCalculator.hasSign(note) ? note.substring(2) : ''];
+                        const randomAnswer = MusicRandomizer.randomizeNoteBetween(lower, upper, sign);
                         const formattedAnswer = Namer.getGermanNoteName(randomAnswer);
                         return { text: formattedAnswer };
                     });
@@ -2205,7 +2238,7 @@
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     answers[correctAnswer] = { text: interval.name };
-                    const tricky = Randomizer.getRandomElementFrom([true, false]);
+                    const tricky = Randomizer.getRandomElementFrom([true, true, false]);
                     const numUnfilledAnswers = answers.filter(entry => entry === null).length;
                     let similarIntervals = MusicRandomizer.determineSimilarIntervals(interval.name).map(entry => entry.intervalName);
                     while (similarIntervals.length < numUnfilledAnswers) {
@@ -2326,9 +2359,16 @@
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
                     const formattedCorrectAnswer = Namer.getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
                     answers[correctAnswer] = { text: formattedCorrectAnswer };
+                    const tricky = Randomizer.getRandomElementFrom([true, true, false]);
+                    let trickyAnswers = [{                         
+                        baseNote: randomChord.baseNote,
+                        chordType: randomChord.chordType === 'major' ? 'minor' : 'major'
+                    }];
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
-                        const wrongChord = MusicRandomizer.randomizeTriad(range);
-                        const wrongInversion = Randomizer.randomizeNumberBetween(0, 2);
+                        const wrongChord = tricky && trickyAnswers.length > 0
+                            ? trickyAnswers.pop()
+                            : MusicRandomizer.randomizeChord(range, ['', '#', 'B'], ['major', 'minor']);;
+                        const wrongInversion = tricky ? inversion : Randomizer.randomizeNumberBetween(0, 2);
                         const formattedAnswer = Namer.getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
                         return { text: formattedAnswer };
                     });
@@ -2571,6 +2611,7 @@
             let state = {
                 question: null,
                 next: [],
+                asked: [],
                 failed: false
             }
 
