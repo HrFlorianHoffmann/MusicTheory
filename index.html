@@ -647,6 +647,19 @@
 
             class Randomizer {
 
+                static randomizeDifferentElements(randomizerFunction, comparatorFunction, targetLength, preFilledContent) {
+                    let result = Quiz.isArray(preFilledContent) ? JSON.parse(JSON.stringify(preFilledContent)) : [];
+                    const comparator = typeof comparatorFunction === 'function' ? comparatorFunction : (a, b) => JSON.stringify(a) === JSON.stringify(b);
+                    while (result.length < targetLength) {
+                        const candidate = randomizerFunction();
+                        const alreadyContained = result.filter(entry => comparator(entry, candidate)).length > 0;
+                        if (!alreadyContained) {
+                            result.push(candidate);
+                        }
+                    }
+                    return result;
+                }
+
                 static randomizeNumberBetween(min, max) { // min and max included 
                     return Math.floor(Math.random() * (max - min + 1) + min);
                 }
@@ -777,7 +790,9 @@
                         const randomDegree = Namer.convertToRomanNumber(Randomizer.randomizeNumberBetween(1, 7));
                         const type = ['I', 'IV', 'V'].indexOf(randomDegree) >= 0 ? 'major' : 'minor';
                         const degree = type === 'major' ? randomDegree.toUpperCase() : randomDegree.toLowerCase();
-                        degrees.push(degree);
+                        if (degree != degrees[degrees.length - 1]) {
+                            degrees.push(degree);
+                        }
                     }
                     const result = degrees.join('-');
                     return result;
@@ -1412,6 +1427,17 @@
                     return name;
                 }
 
+                static getEnglishNoteName(note) {
+                    let baseNote = note.charAt(0);
+                    if (baseNote === 'H') {
+                        baseNote = 'B';
+                    }
+                    const octave = note.charAt(1);
+                    const signs = note.substring(2).toLowerCase();
+                    let result = baseNote + octave + signs;
+                    return result;
+                }
+
                 static getEnglishNoteNameWithoutOctave(note) {
                     let baseNote = note.charAt(0);
                     if (baseNote === 'H') {
@@ -1909,6 +1935,7 @@
                         Questions.askForComplementaryInterval,
                         Questions.askToCompleteMeasure,
                         Questions.askToCompleteChordSequence,
+                        Questions.askForChordSequenceName,
                         Questions.askToContinueAccompaniment
                     ];
                     const nextIndex = Randomizer.randomizeNumberBetween(0, questionTypes.length - 1);
@@ -2104,6 +2131,53 @@
                     return result;
                 }
 
+                static askForChordSequenceName() {
+                    const clefs = MusicCalculator.getClefs();
+                    const clef = Randomizer.getRandomElementFrom(clefs);
+                    const range = MusicCalculator.determineReducedClefRange(clef);
+                    const randomizeSequence = () => ({ type: 'random', sequence: MusicRandomizer.randomizeChordSequence(4) });
+                    let sequences = MusicCalculator.getCadences().map(entry => ({ type: 'cadence', sequence: entry })).concat(MusicCalculator.getOstinatos().map(entry => ({ type: 'ostinato', sequence: entry })))
+                    sequences = Randomizer.randomizeDifferentElements(randomizeSequence, null, 4, sequences);
+                    const correctSequence = Randomizer.getRandomElementFrom(sequences);
+                    const sequence = correctSequence.sequence;
+                    const rawChords = MusicRandomizer.randomizeChordSequenceChords(sequence, range);
+                    const baseNote = rawChords[0][0];
+                    const simplify = Randomizer.getRandomElementFrom([true, false]);
+                    const unadjustedChords = simplify ? MusicCalculator.simplifyChordSequence(rawChords) : rawChords;
+                    const chords = MusicCalculator.adjustForActiveSigns(unadjustedChords);
+                    const startChord = chords[0];
+                    const questionDiagram = [{
+                        element: 'clef',
+                        type: clef
+                    }].concat(chords.map((chord, index) => ({ element: 'chord', notes: chord, value: '1/4' })));
+                    const formatSequenceName = (aSequence) => Namer.determineChordSequenceName(aSequence) === 'unbekannt' ? aSequence : Namer.determineChordSequenceName(aSequence);
+                    let answers = [null, null, null, null];
+                    const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
+                    const answerText = formatSequenceName(sequence);
+                    answers[correctAnswer] = {
+                        text: answerText,
+                        context: sequence
+                    };
+                    answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
+                        const wrongSequence = Randomizer.getRandomElementFrom(sequences).sequence;
+                        const wrongAnswerText = formatSequenceName(wrongSequence);
+                        const wrongAnswer = {
+                            text: wrongAnswerText,
+                            context: wrongSequence
+                        }
+                        return wrongAnswer;
+                    });
+                    const result = {
+                        question: {
+                            text: 'Wie heißt diese Akkordsequenz?',
+                            diagram: questionDiagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer
+                    }
+                    return result;
+                }
+
                 static askForKeyboardKey() {
                     const range = ['C4', 'H4'];
                     const note = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '', '', '', '#', '#', 'B', 'B', '##', 'BB']);
@@ -2186,6 +2260,8 @@
                 }
 
                 static askForNoteName() {
+                    const language = Randomizer.getRandomElementFrom(['German']);
+                    const namingFunction = language === 'German' ? Namer.getGermanNoteName : Namer.getEnglishNoteName;
                     const ranges = MusicCalculator.getClefRanges();
                     const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
                     let diagram = [];
@@ -2204,7 +2280,7 @@
                     });
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                    answers[correctAnswer] = { text: Namer.getGermanNoteName(note) };
+                    answers[correctAnswer] = { text: namingFunction(note) };
                     answers = Quiz.fillWithRandomWrongAnswers(answers, () => {
                         let lower = range[0], upper = range[1];
                         if (tricky) {
@@ -2213,7 +2289,7 @@
                         }
                         const sign = [MusicCalculator.hasSign(note) ? note.substring(2) : ''];
                         const randomAnswer = MusicRandomizer.randomizeNoteBetween(lower, upper, sign);
-                        const formattedAnswer = Namer.getGermanNoteName(randomAnswer);
+                        const formattedAnswer = namingFunction(randomAnswer);
                         return { text: formattedAnswer };
                     });
                     const octaveNames = { 2: 'großen', 3: 'kleinen', 4: 'eingestrichenen', 5: 'zweigestrichenen', 6: 'dreigestrichenen' };
