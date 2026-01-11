@@ -1412,6 +1412,30 @@
                     return name;
                 }
 
+                static getEnglishNoteNameWithoutOctave(note) {
+                    let baseNote = note.charAt(0);
+                    if (baseNote === 'H') {
+                        baseNote = 'B';
+                    }
+                    const signs = note.substring(2).toLowerCase();
+                    let result = baseNote + signs;
+                    return result;
+                }
+
+                static getEnglishChordName(baseNote, type, inversion) {
+                    const formattedBaseNote = Namer.getEnglishNoteNameWithoutOctave(baseNote);
+                    let result = formattedBaseNote;
+                    const formattedChordType = type === 'major' ? '' : 'm';
+                    result += formattedChordType;
+                    const baseTriad = MusicCalculator.buildTriad(baseNote, type);
+                    const actualChord = MusicCalculator.invertTriad(baseTriad, inversion);
+                    const actualBaseNote = Namer.getEnglishNoteNameWithoutOctave(actualChord[0]);
+                    if (actualBaseNote != formattedBaseNote) {
+                        result += '/' + actualBaseNote;
+                    }
+                    return result;
+                }
+
                 static getGermanChordName(baseNote, type, inversion) {
                     const formattedBaseNoteName = Namer.getGermanNoteNameWithoutOctave(baseNote);
                     const formattedChordType = type === 'major' ? 'Dur' : 'Moll';
@@ -2338,6 +2362,8 @@
                 }
 
                 static askForChord() {
+                    const language = Randomizer.getRandomElementFrom(['German', 'English']);
+                    const chordNameFunction = language === 'German' ? Namer.getGermanChordName : Namer.getEnglishChordName;
                     const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                     let diagram = [];
                     const clef = Randomizer.getRandomElementFrom(['treble', 'bass']);
@@ -2357,7 +2383,7 @@
                     });
                     let answers = [null, null, null, null];
                     const correctAnswer = Randomizer.randomizeNumberBetween(0, 3);
-                    const formattedCorrectAnswer = Namer.getGermanChordName(randomChord.baseNote, randomChord.chordType, inversion);
+                    const formattedCorrectAnswer = chordNameFunction(randomChord.baseNote, randomChord.chordType, inversion);
                     answers[correctAnswer] = { text: formattedCorrectAnswer };
                     const tricky = Randomizer.getRandomElementFrom([true, true, false]);
                     let trickyAnswers = [{                         
@@ -2369,7 +2395,7 @@
                             ? trickyAnswers.pop()
                             : MusicRandomizer.randomizeChord(range, ['', '#', 'B'], ['major', 'minor']);;
                         const wrongInversion = tricky ? inversion : Randomizer.randomizeNumberBetween(0, 2);
-                        const formattedAnswer = Namer.getGermanChordName(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
+                        const formattedAnswer = chordNameFunction(wrongChord.baseNote, wrongChord.chordType, wrongInversion);
                         return { text: formattedAnswer };
                     });
                     let explanation = "Die Noten sind " + chord.map(note => Namer.getGermanNoteNameWithoutOctave(note)).join(', ') + ". ";
