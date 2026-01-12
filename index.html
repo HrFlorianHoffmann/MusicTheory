@@ -20,6 +20,7 @@
             }
             .answer {
                 background-color: rgb(211, 228, 255);
+                white-space: pre-line;
             }
             #statistics-section {
                 background-color: #e3e3e3;
@@ -755,6 +756,37 @@
                     return result;
                 }
 
+                static randomizeMelodyFromNotes(measure, notes, values) {
+                    let randomValues = [], remainder = MusicCalculator.countSixtyFourthsInMeasure(measure);
+                    while (remainder > 0) {
+                        const possibleValues = values.filter(value => MusicCalculator.countSixtyFourthsInValue(value) <= remainder);
+                        const next = Randomizer.getRandomElementFrom(possibleValues);
+                        const length = MusicCalculator.countSixtyFourthsInValue(next);
+                        randomValues.push(next);
+                        remainder -= length;
+                    }
+                    let result = [];
+                    for (let i = 0; i < randomValues.length; i++) {
+                        const value = randomValues[i];
+                        const type = Randomizer.getRandomElementFrom(['note', 'pause']);
+                        const note = type === 'note' ? Randomizer.getRandomElementFrom(notes) : undefined;
+                        const element = {
+                            element: type,
+                            value: value,
+                            note: note
+                        }
+                        result.push(element);
+                    }
+                    return result;
+                }
+
+                static randomizeMelodyInKey(measure, key, range, values) {
+                    const allNotes = MusicCalculator.listNotesInKeyInAllOctaves(key);
+                    const notesInRange = allNotes.filter(note => MusicCalculator.isNoteInRange(note, range));
+                    const result = MusicRandomizer.randomizeMelodyFromNotes(measure, notesInRange, values);
+                    return result;
+                }
+
                 static randomizeMelody(measure, fromNote, toNote, signs, values) {
                     let randomValues = [], remainder = MusicCalculator.countSixtyFourthsInMeasure(measure);
                     while (remainder > 0) {
@@ -961,8 +993,12 @@
                     return ["I-IV-V-I"];
                 }
 
+                static getDegreeHalfTonesInMajorScale() {
+                    return [0, 2, 4, 5, 7, 9, 11, 12];
+                }
+
                 static determineChordSequenceChords(sequence, baseNote) {
-                    const degreeHalfTonesInMajorScale = [0, 2, 4, 5, 7, 9, 11, 12];
+                    const degreeHalfTonesInMajorScale = MusicCalculator.getDegreeHalfTonesInMajorScale();
                     const degrees = sequence.split('-');
                     const chords = degrees.map(degree => {
                         const degreeNumber = Namer.convertfromRomanNumber(degree);
@@ -984,10 +1020,30 @@
                     return degree === normalizedDegree ? 'major' : 'minor';
                 }
 
+                static listNotesInKeyInAllOctaves(key) {
+                    const baseNotesInKey = MusicCalculator.listNotesInKey(key);
+                    let result = [];
+                    for (let octave = 0; octave <= 8; octave++) {
+                        const notes = baseNotesInKey.map(note => {
+                            const name = note.charAt(0);
+                            const signs = note.substring(1);
+                            return name + octave + signs;
+                        });
+                        result = result.concat(notes);
+                    }
+                    return result;
+                }
+
                 static listNotesInKey(key) {
+                    const scaleHalfTones = MusicCalculator.getDegreeHalfTonesInMajorScale();
                     const notes = MusicCalculator.getOctaveNotes();
-                    const index = notes.indexOf(key);
-                    const result = notes.slice(index).concat(notes.slice(0, index));
+                    const index = notes.indexOf(key.charAt(0));
+                    const baseNotesInKey = notes.slice(index).concat(notes.slice(0, index)).map(note => note + "0");
+                    const result = baseNotesInKey.map((baseNote, shift) => {
+                        const halfTones = scaleHalfTones[shift];
+                        const adjustedNote = MusicCalculator.determineNoteRelativeTo(baseNotesInKey[0], shift, halfTones);
+                        return adjustedNote;
+                    }).map(note => MusicCalculator.removeOctave(note));
                     return result;
                 }
 
@@ -1116,7 +1172,7 @@
                     for (let i = inversion; i > 0; i--) {
                         result = result.slice(1).concat([MusicCalculator.transposeOctaves(result[0], 1)]);
                     }
-                    return result.sort();
+                    return result.sort((a, b) => a.charAt(1) - b.charAt(2));
                 }
 
                 static transposeNotesOctaves(notes, octaves) {
@@ -1459,6 +1515,41 @@
                     if (actualBaseNote != formattedBaseNote) {
                         result += '/' + actualBaseNote;
                     }
+                    const pronounced = Namer.pronounceChord(result);
+                    result += '\r\n\r\n"' + pronounced + '"';
+                    return result;
+                }
+
+                static pronounceChord(chord) {
+                    const segments = chord.split('/');
+                    const mainSegment = segments[0];
+                    let parts = [
+                        mainSegment.charAt(0),
+                        Namer.pronounceSigns(mainSegment),
+                        Namer.pronounceChordType(mainSegment)
+                    ]
+                    if (segments.length > 1) {
+                        const subSegment = segments[1];
+                        parts.push('over');
+                        parts.push(subSegment.charAt(0));
+                        parts.push(Namer.pronounceSigns(subSegment));
+                    }
+                    const result = parts.join(' ');
+                    return result;
+                }
+
+                static pronounceSigns(signs) {
+                    const parts = signs.split('');
+                    const sharps = parts.filter(char => char === '#').length;
+                    const flats = parts.filter(char => char === 'b').length;
+                    let result = sharps === 2 ? 'double-sharp' : sharps === 1 ? 'sharp' : '';
+                    result += flats === 2 ? 'double-flat' : flats === 1 ? 'flat' : '';
+                    return result;
+                }
+
+                static pronounceChordType(chord) {
+                    const isMinor = chord.indexOf('m') >= 0;
+                    const result = isMinor ? 'minor' : 'major';
                     return result;
                 }
 
@@ -1708,11 +1799,6 @@
                     document.getElementById("question-text").textContent = text;
                 }
 
-                static setAnswerText(num, text) {
-                    const id = "answer-text-" + num;
-                    document.getElementById(id).textContent = text;
-                }
-
                 static isArray(array) {
                     return array && typeof array != 'string' && array.length && typeof array.length === 'number';
                 }
@@ -1721,21 +1807,21 @@
                     for (let i = 0; i < answers.length; i++) {
                         const num = i + 1, answer = answers[i];
                         if (!!answer) {
+                            const textId = "answer-text-" + num;
+                            const textElement = document.getElementById(textId);
+                            const diagramId = 'answer-diagram-' + num;
+                            const diagramElement = document.getElementById(diagramId);
                             if (typeof answer.text === 'string') {
-                                const textId = "answer-text-" + num;
-                                const textElement = document.getElementById(textId);
                                 textElement.textContent = answer.text;
                             }
                             if (Quiz.isArray(answer.diagram)) {
-                                const diagramId = 'answer-diagram-' + num;
-                                const diagramElement = document.getElementById(diagramId);
                                 StaffLayouter.setMusicDiagram(diagramElement, answer.diagram);
                             }
                             if (!!answer.keyboard) {
-                                const diagramId = 'answer-diagram-' + num;
-                                const diagramElement = document.getElementById(diagramId);
                                 KeyboardDrawer.setKeyboard(diagramElement, answer.keyboard.from, answer.keyboard.to, answer.keyboard.markedNotes, 150, 75, 300, 100);
                             }
+                            const showDiagram = Quiz.isArray(answer.diagram) || !!answer.keyboard;
+                            Quiz.setAnswerDiagramVisibility(num, showDiagram);
                         }
                     }
                 }
@@ -1769,6 +1855,13 @@
                         }
                     }
                     return result;
+                }
+
+                static setAnswerDiagramVisibility(num, visible) {
+                    const diagramId = 'answer-diagram-' + num;
+                    const diagramElement = document.getElementById(diagramId);
+                    const height = visible ? '150' : '0';
+                    diagramElement.setAttribute('height', height);
                 }
 
                 static setVisibilityOfElementWithId(id, visible) {
@@ -1937,6 +2030,7 @@
                         Questions.askToCompleteChordSequence,
                         Questions.askForChordSequenceName,
                         Questions.askToContinueAccompaniment
+                        // Questions.askForPossibleAccompaniment
                     ];
                     const nextIndex = Randomizer.randomizeNumberBetween(0, questionTypes.length - 1);
                     if (!state.asked[nextIndex]) {
@@ -1961,6 +2055,39 @@
             // --------------------------------------------------------
 
             class Questions {
+
+                static askForPossibleAccompaniment() {
+                    const clefs = MusicCalculator.getClefs();
+                    const clef = Randomizer.getRandomElementFrom(clefs);
+                    const measures = ['4/4', '3/4', '2/4', '6/8', '5/4'];
+                    const values = ['1/2', '1/2.', '1/4', '1/4.', '1/8', '1/8.', '1/16'];
+                    const measure = Randomizer.getRandomElementFrom(measures);
+                    const range = MusicCalculator.determineClefRange(clef);
+                    const key = MusicRandomizer.randomizeNoteBetween(range[0], range[1], ['', '#', 'B']);
+                    let melody = [];
+                    while (melody.filter(entry => entry.element === 'note').length < 3) {
+                        melody = MusicRandomizer.randomizeMelodyInKey(measure, key, range, values);
+                    }
+                    const questionDiagram = [{
+                        element: 'clef',
+                        type: clef
+                    }, {
+                        element: 'measure',
+                        measure: measure
+                    }].concat(melody).concat([{ element: 'bar' }]);
+                    let answers = [null, null, null, null];
+                    const correctAnswer = 'keine';
+                    const result = {
+                        question: {
+                            text: 'Welcher Akkord könnte diese Melodie wahrscheinlich begleiten?',
+                            diagram: questionDiagram
+                        },
+                        answers: answers,
+                        correctAnswer: correctAnswer,
+                        explanation: explanation
+                    }
+                    return result;
+                }
 
                 static askToContinueAccompaniment() {
                     const clefs = MusicCalculator.getClefs();
@@ -2137,7 +2264,8 @@
                     const range = MusicCalculator.determineReducedClefRange(clef);
                     const randomizeSequence = () => ({ type: 'random', sequence: MusicRandomizer.randomizeChordSequence(4) });
                     let sequences = MusicCalculator.getCadences().map(entry => ({ type: 'cadence', sequence: entry })).concat(MusicCalculator.getOstinatos().map(entry => ({ type: 'ostinato', sequence: entry })))
-                    sequences = Randomizer.randomizeDifferentElements(randomizeSequence, null, 4, sequences);
+                    const comparator = (a, b) => { a.sequence === b.sequence };
+                    sequences = Randomizer.randomizeDifferentElements(randomizeSequence, comparator, 4, sequences);
                     const correctSequence = Randomizer.getRandomElementFrom(sequences);
                     const sequence = correctSequence.sequence;
                     const rawChords = MusicRandomizer.randomizeChordSequenceChords(sequence, range);
@@ -2438,7 +2566,8 @@
                 }
 
                 static askForChord() {
-                    const language = Randomizer.getRandomElementFrom(['German', 'English']);
+                    // const language = Randomizer.getRandomElementFrom(['German', 'English']);
+                    const language = Randomizer.getRandomElementFrom(['English']);
                     const chordNameFunction = language === 'German' ? Namer.getGermanChordName : Namer.getEnglishChordName;
                     const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                     let diagram = [];
