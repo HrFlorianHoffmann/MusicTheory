@@ -653,7 +653,8 @@
                     const comparator = typeof comparatorFunction === 'function' ? comparatorFunction : (a, b) => JSON.stringify(a) === JSON.stringify(b);
                     while (result.length < targetLength) {
                         const candidate = randomizerFunction();
-                        const alreadyContained = result.filter(entry => comparator(entry, candidate)).length > 0;
+                        const matchingOthers = result.filter(entry => comparator(entry, candidate));
+                        const alreadyContained = matchingOthers.length > 0;
                         if (!alreadyContained) {
                             result.push(candidate);
                         }
@@ -1468,7 +1469,7 @@
                 }
 
                 static getGermanNoteNameWithoutOctave(note) {
-                    const signAdditions = { '': '', '#': 'is', 'B': 'es' };
+                    const signAdditions = { '': '', 'N': '', '#': 'is', 'B': 'es' };
                     const baseNote = note.charAt(0);
                     let name = baseNote.toUpperCase();
                     for (let i = 2; i < note.length; i++) {
@@ -2264,7 +2265,7 @@
                     const range = MusicCalculator.determineReducedClefRange(clef);
                     const randomizeSequence = () => ({ type: 'random', sequence: MusicRandomizer.randomizeChordSequence(4) });
                     let sequences = MusicCalculator.getCadences().map(entry => ({ type: 'cadence', sequence: entry })).concat(MusicCalculator.getOstinatos().map(entry => ({ type: 'ostinato', sequence: entry })))
-                    const comparator = (a, b) => { a.sequence === b.sequence };
+                    const comparator = (a, b) => a.sequence === b.sequence;
                     sequences = Randomizer.randomizeDifferentElements(randomizeSequence, comparator, 4, sequences);
                     const correctSequence = Randomizer.getRandomElementFrom(sequences);
                     const sequence = correctSequence.sequence;
@@ -2566,8 +2567,7 @@
                 }
 
                 static askForChord() {
-                    // const language = Randomizer.getRandomElementFrom(['German', 'English']);
-                    const language = Randomizer.getRandomElementFrom(['English']);
+                    const language = Randomizer.getRandomElementFrom(['German', 'English']);
                     const chordNameFunction = language === 'German' ? Namer.getGermanChordName : Namer.getEnglishChordName;
                     const ranges = { treble: ['C4', 'C6'], bass: ['C2', 'C4']};
                     let diagram = [];
